@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 520" role="img" aria-label="竹影">
+  <rect width="280" height="520" fill="none"/>
+  <g fill="none" stroke="#f5f5f5" stroke-linecap="round" opacity=".22">
+    <path d="M72 520c12-124 10-250 23-370 5-47 14-91 28-132" stroke-width="5"/>
+    <path d="M162 520c-10-108-5-211 14-309 12-62 34-122 64-181" stroke-width="4"/>
+    <path d="M112 186c-32 6-59 20-81 42" stroke-width="3"/>
+    <path d="M120 230c36-4 66 4 91 25" stroke-width="3"/>
+    <path d="M177 302c-35 8-63 23-84 45" stroke-width="3"/>
+    <path d="M184 356c32-2 57 8 75 30" stroke-width="3"/>
+  </g>
+  <g fill="#f5f5f5" opacity=".11">
+    <ellipse cx="42" cy="221" rx="42" ry="10" transform="rotate(-28 42 221)"/>
+    <ellipse cx="205" cy="255" rx="40" ry="10" transform="rotate(24 205 255)"/>
+    <ellipse cx="96" cy="346" rx="46" ry="11" transform="rotate(-31 96 346)"/>
+    <ellipse cx="237" cy="386" rx="37" ry="9" transform="rotate(33 237 386)"/>
+  </g>
+</svg>

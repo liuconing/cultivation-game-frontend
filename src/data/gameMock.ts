@@ -49,12 +49,12 @@ export const method = {
 }
 
 export const equipment = [
-  { slot: '武器', name: '寒鐵長劍', bonus: '攻擊 +180' },
-  { slot: '頭盔', name: '玄紗冠', bonus: '生命 +420' },
-  { slot: '胸甲', name: '墨鱗甲', bonus: '防禦 +155' },
-  { slot: '褲子', name: '行雲袍', bonus: '閃避 +3.2%' },
-  { slot: '鞋子', name: '踏霧履', bonus: '速度 +48' },
-  { slot: '飾品', name: '凝神玉佩', bonus: '靈力 +120' },
+  { slot: '武器', name: '寒鐵長劍', bonus: '攻擊 +180', icon: 'weapon' },
+  { slot: '頭盔', name: '玄紗冠', bonus: '生命 +420', icon: 'helmet' },
+  { slot: '胸甲', name: '墨鱗甲', bonus: '防禦 +155', icon: 'armor' },
+  { slot: '褲子', name: '行雲袍', bonus: '閃避 +3.2%', icon: 'pants' },
+  { slot: '鞋子', name: '踏霧履', bonus: '速度 +48', icon: 'boots' },
+  { slot: '飾品', name: '凝神玉佩', bonus: '靈力 +120', icon: 'accessory' },
 ]
 
 export const exploration = {

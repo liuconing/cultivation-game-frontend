@@ -1,6 +1,7 @@
 export { CharacterCard } from './CharacterCard'
 export { EquipmentCard } from './EquipmentCard'
 export { ExplorationCard } from './ExplorationCard'
+export { GameImage } from './GameImage'
 export { MethodCard } from './MethodCard'
 export { Panel } from './Panel'
 export { ProgressBar } from './ProgressBar'

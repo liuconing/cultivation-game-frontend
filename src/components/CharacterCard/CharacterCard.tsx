@@ -1,10 +1,9 @@
 import { character } from '@/data/gameMock'
+import { GameImage } from '../GameImage'
 import { Panel } from '../Panel'
 import { ProgressBar } from '../ProgressBar'
+import characterSilhouette from '@/assets/images/character-silhouette.svg'
 
-/**
- * 顯示角色境界、基礎資訊與生命狀態。
- */
 export function CharacterCard() {
   return (
     <Panel
@@ -14,10 +13,21 @@ export function CharacterCard() {
     >
       <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
         <div className="rounded-lg border border-white/10 bg-black/25 p-5">
-          <p className="text-sm text-neutral-500">當前境界</p>
-          <p className="mt-2 font-serif text-4xl text-neutral-100">
-            {character.realm}
-          </p>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="rounded-full border border-white/20 bg-black/35 p-2">
+              <GameImage
+                alt="角色剪影"
+                className="size-28 rounded-full object-cover opacity-70 hover:opacity-85 hover:brightness-90"
+                src={characterSilhouette}
+              />
+            </div>
+            <div>
+              <p className="text-sm text-neutral-500">當前境界</p>
+              <p className="mt-2 font-serif text-4xl text-neutral-100">
+                {character.realm}
+              </p>
+            </div>
+          </div>
           <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-neutral-500">靈根</dt>
