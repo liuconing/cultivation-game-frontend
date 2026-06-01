@@ -1,0 +1,14 @@
+---
+description: 'Project rules entry. Use this rule to decide which coding rules should be read before editing files.'
+alwaysApply: true
+---
+
+# Project Rules Entry
+
+Before editing code, read `AGENTS.md`.
+
+Then load only the matching rule files based on the files being changed:
+
+- JS / TS files: `.cursor/rules/code-style/js-ts-code-style.md`, `.cursor/rules/code-style/jsdoc-rule.md`
+
+Do not apply Vue-specific naming rules unless the task involves Vue files or Vue Composition API.
