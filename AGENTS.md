@@ -41,6 +41,25 @@
 
 - `.cursor/rules/code-style/react-code-style.md`
 
+View 資料夾規則：
+
+- 採用 **MVVM（View-Controller / View-Model）** 分層
+
+規則檔案：
+
+- `.cursor/rules/code-style/react-view-structure.md`
+
+### Components 結構規則
+
+讀取條件：
+
+- 新增或調整 `src/components/**` 元件
+- 調整元件資料夾結構或 `index.ts` re-export
+
+規則檔案：
+
+- `.cursor/rules/code-style/components-structure.md`
+
 ### Vue 規則
 
 讀取條件：

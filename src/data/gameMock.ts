@@ -10,9 +10,10 @@ export const menuItems = [
 ]
 
 export const resources = [
-  { label: '靈石', value: '128,640' },
-  { label: '修為', value: '9,420 / 12,000' },
-  { label: '靈力', value: '820 / 1,000' },
+  { label: '靈石', value: '128,640', key: 'spiritStone' },
+  { label: '修為', value: '9,420 / 12,000', key: 'cultivation' },
+  { label: '靈力', value: '820 / 1,000', key: 'spiritPower' },
+  { label: '生命', value: '8,420 / 9,800', key: 'health' },
 ]
 
 export const character = {

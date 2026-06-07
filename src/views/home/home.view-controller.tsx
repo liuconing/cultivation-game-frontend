@@ -8,10 +8,16 @@ import {
   StatsCard,
 } from '@/components'
 import { GameImage } from '@/components/GameImage'
-import { menuItems, resources } from '@/data/gameMock'
+import { bind } from '@/utils'
 import inkLandscape from '@/assets/images/ink-landscape.svg'
+import { useHomeViewModel, type IHomeViewModel } from './home.view-model'
 
-function App() {
+/**
+ * 首頁畫面，組合修仙資訊卡片與水墨背景。
+ *
+ * @param props - 由 ViewModel 提供的選單與資源資料。
+ */
+export function homeViewController({ menuItems, resources }: IHomeViewModel) {
   return (
     <div className="ink-wash min-h-screen bg-neutral-950 text-neutral-200">
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -28,7 +34,7 @@ function App() {
       </div>
       <Sidebar items={menuItems} />
       <ResourceBar resources={resources} />
-      <main className="relative z-10 px-4 py-6 lg:ml-64 lg:px-8 lg:py-8">
+      <main className="relative z-10 px-4 pb-6 pt-20 sm:pt-24 lg:ml-64 lg:px-8 lg:pb-8 lg:pt-24">
         <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[1.45fr_0.85fr]">
           <CharacterCard />
           <StatsCard />
@@ -41,4 +47,4 @@ function App() {
   )
 }
 
-export default App
+export default bind(homeViewController, useHomeViewModel)

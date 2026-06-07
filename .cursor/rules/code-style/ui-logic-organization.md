@@ -6,6 +6,7 @@
 - 單一檔案修改時，優先確認既有共用函式是否已存在。
 - 多檔案修改時，完成後需整理可共用邏輯，並放到對應資料夾。
 - 若同時修改 JS / TS / Vue / React 程式碼，需同步套用 `.cursor/rules/code-style/js-ts-code-style.md`。
+- 若涉及 `src/components/**` 元件結構與匯出，需同步套用 `.cursor/rules/code-style/components-structure.md`。
 
 ## 單一檔案修改
 
@@ -23,6 +24,7 @@
 - 新增或調整多個檔案後，需檢查是否出現重複或可共用的 UI 顯示邏輯、互動流程邏輯或輸出內容邏輯。
 - 重複的 UI 狀態、dialog、fetch、mutation、navigator、error handler 等流程邏輯，應整理到 `src/hooks/**`。
 - 重複的格式化、轉換、顯示值計算、輸出文字、時間、金額、百分比等純函式，應整理到 `src/utils/**`。
+- 重複的 UI 顯示結構（卡片外框、進度列等）應抽成 `src/components/**` 的共用元件。
 - 可共用邏輯需依用途整理到對應資料夾。
 - 不將相同邏輯分散保留在多個 component、view 或 page 檔案中。
 - 新增共用檔案後，需同步更新對應資料夾的 `index.ts` re-export。
@@ -39,6 +41,10 @@
   - 函式應避免依賴 component state、DOM 或 framework instance。
   - 專案共用 util 檔案應透過 `src/utils/index.ts` re-export。
   - 範例類型：`delay`、`formatAmount`、`formatTime`、`formatRate`。
+- `src/components/**`
+  - 放置可重用的 UI 顯示元件，結構與匯出規則見 `.cursor/rules/code-style/components-structure.md`。
+  - 每個元件使用同名資料夾，內含 `ComponentName.tsx` 與 `index.ts`。
+  - 所有元件透過 `src/components/index.ts` 統一 re-export，外部從 `@/components` 匯入。
 
 ## 判斷順序
 
