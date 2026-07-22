@@ -55,12 +55,8 @@ export function useLoginViewModel(): ILoginViewModel {
   return {
     isRegister,
     message,
-    accountDefault: isRegister
-      ? authMock.register.account
-      : authMock.login.account,
-    passwordDefault: isRegister
-      ? authMock.register.password
-      : authMock.login.password,
+    accountDefault: isRegister ? authMock.register.account : authMock.login.account,
+    passwordDefault: isRegister ? authMock.register.password : authMock.login.password,
     characterNameDefault: authMock.register.characterName,
     handleSelectLogin,
     handleSelectRegister,

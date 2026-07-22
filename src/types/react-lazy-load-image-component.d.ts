@@ -3,6 +3,8 @@ declare module 'react-lazy-load-image-component' {
 
   export type LazyLoadImageProps = ImgHTMLAttributes<HTMLImageElement> & {
     effect?: 'blur' | 'black-and-white' | 'opacity'
+    wrapperClassName?: string
+    visibleByDefault?: boolean
   }
 
   export function LazyLoadImage(props: LazyLoadImageProps): JSX.Element
