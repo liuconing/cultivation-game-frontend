@@ -28,7 +28,7 @@
 - `.cursor/rules/code-style/js-ts-code-style.md`
 - `.cursor/rules/code-style/jsdoc-rule.md`
 
-### React 規則
+### React 頁面規則
 
 讀取條件：
 
@@ -48,6 +48,16 @@ View 資料夾規則：
 規則檔案：
 
 - `.cursor/rules/code-style/react-view-structure.md`
+
+### domain 結構規則
+
+讀取條件：
+
+- 有修改、新增 `src/domain/**` 資料、檔案、架構
+
+規則檔案：
+
+- `.cursor/rules/code-style/domain-agents.md`
 
 ### Components 結構規則
 
