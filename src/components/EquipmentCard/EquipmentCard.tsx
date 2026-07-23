@@ -1,49 +1,30 @@
-import { equipment } from '@/data/gameMock'
+import { mockGameStateFixtures } from '@/data/gameMock'
 import { Panel } from '../Panel'
-import {
-  GiArmorVest,
-  GiBroadsword,
-  GiCrownedSkull,
-  GiDropEarrings,
-  GiLegArmor,
-  GiLeatherBoot,
-} from 'react-icons/gi'
+import { StatusBadge } from '../StatusBadge'
 
-const equipmentIcons = {
-  accessory: GiDropEarrings,
-  armor: GiArmorVest,
-  boots: GiLeatherBoot,
-  helmet: GiCrownedSkull,
-  pants: GiLegArmor,
-  weapon: GiBroadsword,
-}
-
+/** 顯示裝備 fixture 的展示卡片。 */
 export function EquipmentCard() {
-  return (
-    <Panel eyebrow="法器與護具" title="裝備">
-      <div className="grid gap-3 sm:grid-cols-2">
-        {equipment.map((item) => {
-          const Icon =
-            equipmentIcons[item.icon as keyof typeof equipmentIcons] ??
-            GiBroadsword
+  const { equipment } = mockGameStateFixtures.default
 
-          return (
-            <div
-              className="group flex gap-3 rounded-md border border-white/10 bg-black/20 p-3 transition hover:bg-white/5"
-              key={item.slot}
-            >
-              <div className="grid size-10 shrink-0 place-items-center rounded-md border border-white/10 bg-black/30">
-                <Icon className="text-xl text-neutral-300 opacity-70 transition group-hover:opacity-90" />
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">{item.slot}</p>
-                <p className="mt-1 text-sm text-neutral-100">{item.name}</p>
-                <p className="mt-2 text-xs text-neutral-400">{item.bonus}</p>
-              </div>
+  return (
+    <Panel eyebrow="INSTANCE FIXTURE" title="目前裝備">
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {equipment.map((item) => (
+          <li
+            className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3"
+            key={item.id}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="truncate text-sm text-neutral-100">{item.name}</p>
+              <StatusBadge tone="gold">{item.quality}</StatusBadge>
             </div>
-          )
-        })}
-      </div>
+            <p className="mt-2 text-xs text-neutral-500">{item.slot}</p>
+            <p className="mt-2 break-words text-xs text-neutral-300">
+              {item.attributes.join('・')}
+            </p>
+          </li>
+        ))}
+      </ul>
     </Panel>
   )
 }

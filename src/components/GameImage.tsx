@@ -5,13 +5,12 @@ type GameImageProps = {
   src: string
   alt: string
   className?: string
-  /** 套用在 LazyLoadImage 外層 wrapper 的類別，定位類（absolute 等）請放這裡。 */
   wrapperClassName?: string
   effect?: 'blur'
-  /** 移出可視範圍的裝飾背景請設為 true，避免 lazy load 永遠不觸發。 */
   visibleByDefault?: boolean
 }
 
+/** 顯示具有一致灰階水墨處理的遊戲圖片。 */
 export function GameImage({
   src,
   alt,

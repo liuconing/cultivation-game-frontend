@@ -1,7 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: KaiTi, STKaiti, DFKai-SB, "Noto Serif TC", serif;
+  --font-serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+
+  --color-ink-950: #070908;
+  --color-ink-900: #101512;
+  --color-ink-800: #18201b;
+
+  --color-jade-100: #d8efe5;
+  --color-jade-200: #b8dfcb;
+  --color-jade-300: #87c6a5;
+  --color-jade-400: #5aa77f;
+  --color-jade-700: #285c44;
+
+  --color-cinnabar-100: #f5d7d0;
+  --color-cinnabar-200: #e9afa2;
+  --color-cinnabar-400: #b95f50;
+  --color-cinnabar-700: #6f3028;
+
+  --color-gold-100: #f2e6c8;
+  --color-gold-200: #dfc991;
+  --color-gold-300: #c3a968;
+  --color-gold-400: #a78948;
+  --color-gold-700: #695429;
 }
 
 * {
@@ -9,23 +30,33 @@
 }
 
 html {
-  background: #050505;
+  min-width: 320px;
+  background: var(--color-ink-950);
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
   color: #e5e5e5;
   background:
-    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.08), transparent 24rem),
-    linear-gradient(180deg, #0a0a0a 0%, #050505 48%, #111 100%);
+    radial-gradient(circle at 18% 4%, rgb(90 167 127 / 0.09), transparent 26rem),
+    radial-gradient(circle at 82% 22%, rgb(167 137 72 / 0.07), transparent 28rem),
+    linear-gradient(180deg, #0b0f0c 0%, #070908 62%, #0d120f 100%);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    Inter, "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
-button {
+button,
+input,
+select {
   font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
 }
 
 .ink-wash {
@@ -36,31 +67,43 @@ button {
 
 .ink-wash::before,
 .ink-wash::after {
-  content: '';
   position: fixed;
   inset: 0;
+  z-index: -1;
+  content: "";
   pointer-events: none;
-  z-index: 0;
 }
 
 .ink-wash::before {
-  opacity: 0.45;
+  opacity: 0.62;
   background:
-    radial-gradient(ellipse at 70% 18%, rgba(255, 255, 255, 0.08), transparent 18rem),
-    radial-gradient(ellipse at 18% 80%, rgba(255, 255, 255, 0.05), transparent 20rem),
-    linear-gradient(152deg, transparent 0 48%, rgba(255, 255, 255, 0.05) 49%, transparent 58%),
-    linear-gradient(166deg, transparent 0 56%, rgba(255, 255, 255, 0.04) 57%, transparent 66%);
+    radial-gradient(ellipse at 73% 12%, rgb(255 255 255 / 0.05), transparent 20rem),
+    linear-gradient(152deg, transparent 0 48%, rgb(255 255 255 / 0.025) 49%, transparent 59%);
 }
 
 .ink-wash::after {
   opacity: 0.34;
   background:
-    linear-gradient(150deg, transparent 0 61%, rgba(255, 255, 255, 0.07) 62%, transparent 64%),
-    linear-gradient(18deg, transparent 0 72%, rgba(255, 255, 255, 0.05) 73%, transparent 76%),
     repeating-linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.035) 0 1px,
-      transparent 1px 52px
+      rgb(255 255 255 / 0.025) 0 1px,
+      transparent 1px 56px
     );
   mask-image: linear-gradient(to bottom, transparent, black 12%, black 86%, transparent);
+}
+
+::selection {
+  color: var(--color-ink-950);
+  background: var(--color-jade-200);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

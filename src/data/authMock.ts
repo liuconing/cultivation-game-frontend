@@ -1,12 +1,12 @@
 export const authMock = {
   login: {
-    account: 'demo@inkdao.local',
+    account: 'demo@wenxian.local',
     password: 'mock-pass',
   },
   register: {
-    account: 'new@inkdao.local',
-    characterName: '墨雲',
+    account: 'new@wenxian.local',
+    characterName: '沈望舒',
     password: 'mock-pass',
   },
-  message: '已使用 mock data 驗證，尚未串接 API。',
+  message: '此畫面使用記憶體 Mock，不會呼叫正式 API。',
 }

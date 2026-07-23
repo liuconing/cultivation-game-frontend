@@ -1,18 +1,17 @@
-/* eslint-disable react/display-name */
+import { memo, type FunctionComponent } from 'react'
 
-import { memo } from 'react';
+/**
+ * 將無外部 props 的 ViewModel 與 ViewController 綁定。
+ */
+export function bind<ViewModel extends object>(
+  Component: FunctionComponent<ViewModel>,
+  useViewModelHook: () => ViewModel,
+): FunctionComponent {
+  const BoundComponent = () => {
+    const viewModel = useViewModelHook()
+    return <Component {...viewModel} />
+  }
 
-/** 把hook的return object,利用HOC inject到component中 */
-export function bind<P, T extends object>(
-  Component: React.FunctionComponent<P>,
-  useViewModelHook: (props?: any) => T,
-): React.FunctionComponent<any> {
-  return memo((props) => {
-    if (typeof useViewModelHook !== 'function') {
-      throw Error('Error occur at bind function ViewModel Must be a function');
-    }
-
-    const viewModel = useViewModelHook(props) ?? {};
-    return <Component {...viewModel} {...props} />;
-  });
+  BoundComponent.displayName = `Bound${Component.name || 'View'}`
+  return memo(BoundComponent)
 }
