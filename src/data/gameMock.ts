@@ -10,6 +10,9 @@ export type MockScenario =
   | 'disconnected'
   | 'sessionExpired'
   | 'noMethod'
+  | 'turnLimit'
+  | 'encounter'
+  | 'bossFirstKill'
 
 export type MockCharacter = {
   id: string
@@ -43,6 +46,13 @@ export type MockBattle = {
   rounds: number
   log: string[]
   rewards: string[]
+  title?: string
+  enemyName?: string
+  firstStrike?: string
+  healthRemaining?: number
+  spiritRemaining?: number
+  enemyHealthRemaining?: number
+  firstKill?: boolean
 }
 
 export type MockInventoryItem = {
@@ -182,7 +192,20 @@ const baseGameState: MockGameState = {
     id: 'battle-001',
     result: 'victory',
     rounds: 6,
-    log: ['你取得先手。', '流雲劍訣命中，造成 318 點傷害。', '青鱗蟒倒下。'],
+    title: '山林伏妖',
+    enemyName: '青鱗蟒',
+    firstStrike: '你以較高速度取得先手。',
+    healthRemaining: 7310,
+    spiritRemaining: 664,
+    enemyHealthRemaining: 0,
+    log: [
+      '第 1 回合・流雲劍訣命中，造成 318 點傷害。',
+      '第 2 回合・青鱗蟒毒牙落空。',
+      '第 3 回合・觸發暴擊，造成 602 點傷害。',
+      '第 4 回合・中毒狀態造成 48 點傷害。',
+      '第 5 回合・凝神訣恢復 32 點靈力。',
+      '第 6 回合・青鱗蟒倒下。',
+    ],
     rewards: ['修為 240', '靈石 1,200', '青鱗 x2'],
   },
   inventory: [
@@ -331,7 +354,18 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       id: 'battle-002',
       result: 'defeat',
       rounds: 14,
-      log: ['境界壓制使你的傷害降低。', '靈力耗盡，無法施放技能。'],
+      title: '山谷敗退',
+      enemyName: '裂風妖狼',
+      firstStrike: '裂風妖狼取得先手，境界壓制生效。',
+      healthRemaining: 0,
+      spiritRemaining: 18,
+      enemyHealthRemaining: 1320,
+      log: [
+        '第 1 回合・裂風爪命中，造成 412 點傷害。',
+        '第 4 回合・你的靈氣斬落空。',
+        '第 9 回合・流血狀態疊加至 3 層。',
+        '第 14 回合・生命歸零，探索失敗。',
+      ],
       rewards: [],
     },
   }),
@@ -399,6 +433,68 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       finalRate: 80,
     },
   }),
+  turnLimit: createScenarioFixture('turnLimit', {
+    notice: '雙方鏖戰 30 回合，探索依規則判定失敗。',
+    battle: {
+      id: 'battle-turn-limit',
+      result: 'turn-limit',
+      rounds: 30,
+      title: '三十回合鏖戰',
+      enemyName: '石甲玄龜',
+      firstStrike: '石甲玄龜展開護甲，你取得先手。',
+      healthRemaining: 2480,
+      spiritRemaining: 0,
+      enemyHealthRemaining: 860,
+      log: Array.from({ length: 30 }, (_, index) => {
+        const round = index + 1
+        if (round % 7 === 0) {
+          return `第 ${round} 回合・靈氣斬暴擊，石甲狀態抵銷部分傷害。`
+        }
+        if (round % 5 === 0) {
+          return `第 ${round} 回合・你的攻擊落空，靈力剩餘 ${Math.max(0, 180 - round * 6)}。`
+        }
+        if (round % 3 === 0) {
+          return `第 ${round} 回合・石甲玄龜命中，造成 ${90 + round * 3} 點傷害。`
+        }
+        return `第 ${round} 回合・流雲劍訣命中，造成 ${120 + round * 4} 點傷害。`
+      }),
+      rewards: [],
+    },
+  }),
+  encounter: createScenarioFixture('encounter', {
+    notice: '偶遇雲遊丹師，未觸發戰鬥。',
+    battle: null,
+  }),
+  bossFirstKill: createScenarioFixture('bossFirstKill', {
+    notice: 'Boss 首殺成功，額外獎勵已加入摘要。',
+    battle: {
+      id: 'battle-boss-first-kill',
+      result: 'victory',
+      rounds: 12,
+      title: '山谷之主',
+      enemyName: '赤角妖王',
+      firstStrike: '赤角妖王咆哮震懾，你仍搶得先手。',
+      healthRemaining: 4210,
+      spiritRemaining: 206,
+      enemyHealthRemaining: 0,
+      firstKill: true,
+      log: [
+        '第 1 回合・靈氣斬命中，造成 488 點傷害。',
+        '第 3 回合・赤角衝撞暴擊，造成 826 點傷害。',
+        '第 5 回合・你進入破甲狀態，防禦降低 12%。',
+        '第 8 回合・凝神訣觸發，恢復 40 點靈力。',
+        '第 11 回合・流雲劍訣暴擊，造成 1,204 點傷害。',
+        '第 12 回合・赤角妖王倒下，完成首殺。',
+      ],
+      rewards: [
+        '修為 2,400',
+        '靈石 6,800',
+        '靈根精華 x12',
+        '赤角王冠 x1',
+        'Boss 首殺寶匣 x1',
+      ],
+    },
+  }),
 }
 
 export const mockScenarioOptions: Array<{
@@ -417,6 +513,9 @@ export const mockScenarioOptions: Array<{
   { value: 'disconnected', label: '連線中斷', tone: 'cinnabar' },
   { value: 'sessionExpired', label: 'Session 失效', tone: 'cinnabar' },
   { value: 'noMethod', label: '未裝備功法', tone: 'neutral' },
+  { value: 'turnLimit', label: '30 回合失敗', tone: 'cinnabar' },
+  { value: 'encounter', label: '奇遇事件', tone: 'jade' },
+  { value: 'bossFirstKill', label: 'Boss 首殺', tone: 'gold' },
 ]
 
 export const getMockGameState = (scenario: MockScenario): MockGameState => {

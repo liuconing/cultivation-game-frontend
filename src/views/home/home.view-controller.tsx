@@ -33,6 +33,9 @@ const scenarioTone = {
   disconnected: 'cinnabar',
   sessionExpired: 'cinnabar',
   noMethod: 'neutral',
+  turnLimit: 'cinnabar',
+  encounter: 'jade',
+  bossFirstKill: 'gold',
 } as const
 
 /** 呈現 UI-01 的設計基礎與 Mock GameState 展示板。 */

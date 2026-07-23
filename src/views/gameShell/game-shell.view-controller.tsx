@@ -16,6 +16,7 @@ import {
   MobileNavigation,
 } from './game-shell.navigation'
 import { CultivationMock } from './cultivation/CultivationMock'
+import { ExploreMock } from './explore/ExploreMock'
 
 const compactNumberFormatter = new Intl.NumberFormat('zh-TW', {
   notation: 'compact',
@@ -295,6 +296,9 @@ export function gameShellViewController({
             {activeItem.path === '/game/cultivation' &&
             !gameState.isLoading ? (
               <CultivationMock />
+            ) : activeItem.path === '/game/explore' &&
+              !gameState.isLoading ? (
+              <ExploreMock />
             ) : (
               <Panel
                 eyebrow={`${activeItem.nextTask} PLACEHOLDER`}

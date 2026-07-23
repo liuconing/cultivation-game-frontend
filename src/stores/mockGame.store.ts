@@ -11,6 +11,7 @@ type MockGameStore = {
   claimCultivation: () => void
   resolveBreakthrough: (outcome: 'success' | 'failure') => void
   upgradeSpiritualRoot: () => void
+  resolveExploration: () => void
   reset: () => void
 }
 
@@ -126,6 +127,72 @@ export const useMockGameStore = create<MockGameStore>((set) => ({
               gameState.cultivationState.rootEssence -
               gameState.cultivationState.rootUpgradeCost,
             nextRootQuality: null,
+          },
+        },
+      }
+    })
+  },
+  resolveExploration: () => {
+    set(({ gameState }) => {
+      const { character, scenario } = gameState
+
+      if (scenario === 'encounter') {
+        return {
+          gameState: {
+            ...gameState,
+            notice: '奇遇完成，獲得丹師贈禮與 500 靈石。',
+            character: {
+              ...character,
+              spiritStones: character.spiritStones + 500,
+            },
+          },
+        }
+      }
+
+      if (scenario === 'failure') {
+        return {
+          gameState: {
+            ...gameState,
+            notice: '探索戰敗，生命降至 0。',
+            character: {
+              ...character,
+              health: 0,
+              spiritPower: Math.max(0, character.spiritPower - 240),
+            },
+          },
+        }
+      }
+
+      if (scenario === 'turnLimit') {
+        return {
+          gameState: {
+            ...gameState,
+            notice: '30 回合結束，未獲得探索獎勵。',
+            character: {
+              ...character,
+              health: Math.min(character.health, 2480),
+              spiritPower: 0,
+            },
+          },
+        }
+      }
+
+      const isBoss = scenario === 'bossFirstKill'
+      return {
+        gameState: {
+          ...gameState,
+          notice: isBoss
+            ? 'Boss 首殺獎勵已結算至記憶體狀態。'
+            : '探索勝利，獎勵已結算至記憶體狀態。',
+          character: {
+            ...character,
+            health: Math.max(1, character.health - (isBoss ? 1200 : 380)),
+            spiritPower: Math.max(
+              0,
+              character.spiritPower - (isBoss ? 300 : 120),
+            ),
+            spiritStones:
+              character.spiritStones + (isBoss ? 6800 : 1200),
           },
         },
       }
