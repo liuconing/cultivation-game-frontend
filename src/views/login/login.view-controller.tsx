@@ -1,28 +1,24 @@
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import { Link } from 'react-router'
 import { Button, StatusBadge, TextField } from '@/components'
-import type { AuthMockScenario } from '@/data/authMock'
 import { bind } from '@/utils'
 import {
   useLoginViewModel,
   type ILoginViewModel,
 } from './login.view-model'
 
-/** 呈現登入與註冊的互動 Mock 畫面。 */
+/** 呈現串接正式認證 API 的登入與註冊畫面。 */
 export function loginViewController({
   mode,
   values,
   fieldErrors,
   notice,
-  scenario,
-  scenarioOptions,
   showPassword,
   isSubmitting,
   accountRef,
   passwordRef,
   confirmPasswordRef,
   handleFieldChange,
-  handleScenarioChange,
   handleTogglePassword,
   handleSubmit,
 }: ILoginViewModel) {
@@ -30,7 +26,7 @@ export function loginViewController({
   const title = isRegister ? '建立道籍' : '重返仙途'
   const description = isRegister
     ? '建立帳號後，下一步將由角色建立流程接續。'
-    : '以固定 Mock 狀態驗證登入、錯誤與角色導流。'
+    : '登入後將依角色狀態前往建立角色或遊戲畫面。'
 
   const passwordToggle = (
     <button
@@ -60,7 +56,7 @@ export function loginViewController({
           </h1>
           <p className="mt-6 max-w-md text-sm leading-7 text-neutral-400">
             後端權威、探索配裝導向的純單人文字放置遊戲。
-            此入口目前為 UI Mock，不保存帳號資料。
+            帳號資料由正式後端驗證，登入狀態會安全保存在此裝置。
           </p>
         </div>
         <ol className="space-y-4 border-l border-gold-300/25 pl-5 text-sm text-neutral-500">
@@ -91,7 +87,7 @@ export function loginViewController({
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
               <div className="min-w-0">
                 <p className="text-xs tracking-[0.18em] text-gold-200/65">
-                  {isRegister ? 'REGISTER MOCK' : 'LOGIN MOCK'}
+                  {isRegister ? 'REGISTER' : 'LOGIN'}
                 </p>
                 <h2 className="mt-2 font-serif text-3xl text-neutral-100">
                   {title}
@@ -100,30 +96,8 @@ export function loginViewController({
                   {description}
                 </p>
               </div>
-              <StatusBadge tone="jade">記憶體模式</StatusBadge>
+              <StatusBadge tone="jade">API 已連線</StatusBadge>
             </div>
-
-            <label className="mt-5 block">
-              <span className="mb-2 block text-xs text-neutral-500">
-                Mock 提交結果
-              </span>
-              <select
-                className="min-h-11 w-full rounded-md border border-white/14 bg-black/30 px-3 text-sm text-neutral-100 outline-none focus:border-jade-300/70 focus:ring-2 focus:ring-jade-300/15"
-                disabled={isSubmitting}
-                onChange={(event) => {
-                  handleScenarioChange(
-                    event.target.value as AuthMockScenario,
-                  )
-                }}
-                value={scenario}
-              >
-                {scenarioOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
 
             <form
               className="mt-5 space-y-4"
@@ -190,7 +164,7 @@ export function loginViewController({
                 role="status"
               >
                 {notice?.message ??
-                  '提交期間不會發送任何正式網路請求。'}
+                  '請輸入 Email 與至少 8 個字元的密碼。'}
               </div>
 
               <Button
@@ -222,7 +196,7 @@ export function loginViewController({
               )}
               <Link
                 className="text-xs text-neutral-600 underline-offset-4 hover:text-neutral-400 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
-                to="/"
+                to="/foundation"
               >
                 查看 UI Foundation
               </Link>

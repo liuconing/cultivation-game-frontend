@@ -39,6 +39,7 @@ export function gameShellViewController({
   isCharacterDrawerOpen,
   isAccountMenuOpen,
   shellNotice,
+  accountLabel,
   accountButtonRef,
   accountMenuRef,
   accountFirstItemRef,
@@ -139,7 +140,7 @@ export function gameShellViewController({
                     role="menu"
                   >
                     <p className="px-3 py-2 text-xs text-neutral-600">
-                      帳號 Mock
+                      {accountLabel}
                     </p>
                     <button
                       className="min-h-10 w-full rounded px-3 text-left text-sm text-neutral-300 hover:bg-white/[0.06] focus-visible:outline-2 focus-visible:outline-jade-300"

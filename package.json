@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:auth": "node --test scripts/auth-form.test.mjs",
+    "test:routes": "node --test scripts/route-access.test.mjs",
     "test:api-smoke": "node --env-file-if-exists=.env scripts/api-smoke.mjs",
     "preview": "vite preview"
   },

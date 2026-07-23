@@ -1,89 +1,120 @@
 import {
-  useEffect,
   useRef,
   useState,
   type FormEvent,
   type RefObject,
 } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { loginUserUsecase, registerUserUsecase } from '@/domain'
 import {
-  authMock,
-  authMockScenarioOptions,
+  createInitialAuthFormValues,
   validateAuthForm,
   type AuthFieldErrors,
   type AuthFormValues,
-  type AuthMockNotice,
-  type AuthMockScenario,
   type AuthMode,
-} from '@/data/authMock'
+  type AuthNotice,
+} from '@/data/auth'
+import { getApiClientError } from '@/lib/axios'
+import { useAuthStore } from '@/stores'
 
+/** 登入與註冊 ViewController 需要的狀態與操作。 */
 export interface ILoginViewModel {
+  /** 目前是登入或註冊模式。 */
   mode: AuthMode
+  /** 使用者輸入的表單值。 */
   values: AuthFormValues
+  /** 各輸入欄位的前端錯誤。 */
   fieldErrors: AuthFieldErrors
-  notice: AuthMockNotice | null
-  scenario: AuthMockScenario
-  scenarioOptions: typeof authMockScenarioOptions
+  /** API 或 session 狀態通知。 */
+  notice: AuthNotice | null
+  /** 是否顯示密碼明文。 */
   showPassword: boolean
+  /** 是否正在送出 API 請求。 */
   isSubmitting: boolean
+  /** Email 輸入欄位 ref。 */
   accountRef: RefObject<HTMLInputElement | null>
+  /** 密碼輸入欄位 ref。 */
   passwordRef: RefObject<HTMLInputElement | null>
+  /** 確認密碼輸入欄位 ref。 */
   confirmPasswordRef: RefObject<HTMLInputElement | null>
+  /** 更新指定表單欄位。 */
   handleFieldChange: (
     field: keyof AuthFormValues,
     value: string,
   ) => void
-  handleScenarioChange: (scenario: AuthMockScenario) => void
+  /** 切換密碼顯示狀態。 */
   handleTogglePassword: () => void
+  /** 驗證並送出登入或註冊表單。 */
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
 
-const getInitialValues = (mode: AuthMode): AuthFormValues => {
-  if (mode === 'register') {
-    return {
-      account: authMock.register.account,
-      password: authMock.register.password,
-      confirmPassword: authMock.register.confirmPassword,
-    }
-  }
-
-  return {
-    account: authMock.login.account,
-    password: authMock.login.password,
-    confirmPassword: '',
-  }
+/** 登入導向所附帶的來源路徑狀態。 */
+interface AuthLocationState {
+  /** 使用者登入前嘗試進入的受保護路徑。 */
+  from?: unknown
 }
 
-/** 管理登入與註冊畫面的純記憶體 Mock 互動。 */
+/**
+ * 從 React Router state 取得安全的站內返回路徑。
+ *
+ * @param state - 目前 location state。
+ * @returns 合法站內路徑；無合法來源時回到根路徑。
+ */
+const getReturnPath = (state: unknown): string => {
+  if (!state || typeof state !== 'object') {
+    return '/'
+  }
+
+  const { from } = state as AuthLocationState
+  if (
+    typeof from !== 'string' ||
+    !from.startsWith('/') ||
+    from.startsWith('//') ||
+    from === '/login' ||
+    from === '/register'
+  ) {
+    return '/'
+  }
+
+  return from
+}
+
+/** 管理登入與註冊表單驗證、正式 API 及成功導流。 */
 export function useLoginViewModel(): ILoginViewModel {
   const location = useLocation()
   const navigate = useNavigate()
   const mode: AuthMode =
     location.pathname === '/register' ? 'register' : 'login'
-  const [values, setValues] = useState<AuthFormValues>(() =>
-    getInitialValues(mode),
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const sessionNotice = useAuthStore((state) => state.sessionNotice)
+  const clearSessionNotice = useAuthStore(
+    (state) => state.clearSessionNotice,
+  )
+  const [values, setValues] = useState<AuthFormValues>(
+    createInitialAuthFormValues,
   )
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({})
-  const [notice, setNotice] = useState<AuthMockNotice | null>(null)
-  const [scenario, setScenario] = useState<AuthMockScenario>(
-    'successNoCharacter',
-  )
+  const [notice, setNotice] = useState<AuthNotice | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const accountRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
-  const submitTimerRef = useRef<number | null>(null)
+  const visibleNotice =
+    notice ??
+    (sessionNotice === 'expired'
+      ? {
+          tone: 'error' as const,
+          message: '登入狀態已失效，請重新登入。',
+        }
+      : null)
 
-  useEffect(() => {
-    return () => {
-      if (submitTimerRef.current !== null) {
-        window.clearTimeout(submitTimerRef.current)
-      }
-    }
-  }, [])
-
-  const focusFirstError = (errors: AuthFieldErrors) => {
+  /**
+   * 將鍵盤焦點移至第一個驗證錯誤欄位。
+   *
+   * @param errors - 目前表單的欄位錯誤。
+   */
+  const focusFirstError = (errors: AuthFieldErrors): void => {
     if (errors.account) {
       accountRef.current?.focus()
     } else if (errors.password) {
@@ -93,16 +124,23 @@ export function useLoginViewModel(): ILoginViewModel {
     }
   }
 
-  const focusAccountAfterSubmit = () => {
+  /** 在畫面更新後將焦點移回 Email 欄位。 */
+  const focusAccountAfterSubmit = (): void => {
     window.requestAnimationFrame(() => {
       accountRef.current?.focus()
     })
   }
 
+  /**
+   * 更新指定欄位並清除該欄位的舊錯誤。
+   *
+   * @param field - 要更新的表單欄位。
+   * @param value - 欄位的新字串值。
+   */
   const handleFieldChange = (
     field: keyof AuthFormValues,
     value: string,
-  ) => {
+  ): void => {
     setValues((currentValues) => ({
       ...currentValues,
       [field]: value,
@@ -111,61 +149,86 @@ export function useLoginViewModel(): ILoginViewModel {
       ...currentErrors,
       [field]: undefined,
     }))
+    clearSessionNotice()
     setNotice(null)
   }
 
-  const completeMockSubmit = () => {
-    setIsSubmitting(false)
+  /**
+   * 將後端或網路錯誤映射為認證畫面通知。
+   *
+   * @param error - 登入或註冊 API 回傳的錯誤。
+   */
+  const handleAuthError = (error: unknown): void => {
+    const apiError = getApiClientError(error)
 
-    if (scenario === 'fieldError') {
-      const mockErrors = {
-        account: '此 Email 未通過 Mock 欄位驗證。',
-      }
-      setFieldErrors(mockErrors)
+    if (apiError.code === 'INVALID_CREDENTIALS') {
       setNotice({
         tone: 'error',
-        message: '請修正標示的欄位後再試一次。',
+        message: 'Email 或密碼不正確，請重新輸入。',
       })
       focusAccountAfterSubmit()
       return
     }
 
-    if (scenario === 'accountExists') {
+    if (apiError.code === 'ACCOUNT_EXISTS') {
       setNotice({
         tone: 'error',
-        message:
-          mode === 'register'
-            ? '此 Email 已建立帳號，請改用登入。'
-            : '此帳號狀態無法登入，請切換其他 Mock 情境。',
+        message: '此 Email 已建立帳號，請改用登入。',
       })
       focusAccountAfterSubmit()
       return
     }
 
-    if (scenario === 'networkError') {
+    if (apiError.code === 'VALIDATION_ERROR') {
       setNotice({
         tone: 'error',
-        message: 'Mock 連線失敗，資料未送出，請稍後重試。',
+        message: '送出的欄位格式不正確，請檢查後再試。',
       })
+      focusAccountAfterSubmit()
       return
     }
 
-    if (mode === 'register') {
-      setNotice({
-        tone: 'success',
-        message: 'Mock 註冊成功，請返回登入頁繼續。',
-      })
-      return
-    }
-
-    navigate(
-      scenario === 'successHasCharacter'
-        ? '/game/cultivation'
-        : '/character/create',
-    )
+    setNotice({
+      tone: 'error',
+      message: apiError.message,
+    })
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  /** 呼叫目前模式對應的正式認證 API。 */
+  const submitAuth = async (): Promise<void> => {
+    setIsSubmitting(true)
+
+    try {
+      const input = {
+        email: values.account.trim(),
+        password: values.password,
+      }
+
+      if (mode === 'register') {
+        await registerUserUsecase(input)
+        setNotice({
+          tone: 'success',
+          message: '道籍建立成功，請返回登入。',
+        })
+        return
+      }
+
+      const response = await loginUserUsecase(input)
+      setAuth(response.data)
+      navigate(getReturnPath(location.state), { replace: true })
+    } catch (error) {
+      handleAuthError(error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  /**
+   * 驗證表單並啟動登入或註冊請求。
+   *
+   * @param event - React 表單送出事件。
+   */
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     if (isSubmitting) {
       return
@@ -173,37 +236,37 @@ export function useLoginViewModel(): ILoginViewModel {
 
     const errors = validateAuthForm(mode, values)
     setFieldErrors(errors)
-    setNotice(null)
 
     if (Object.keys(errors).length > 0) {
+      setNotice({
+        tone: 'error',
+        message: '請修正標示的欄位後再試一次。',
+      })
       focusFirstError(errors)
       return
     }
 
-    setIsSubmitting(true)
-    submitTimerRef.current = window.setTimeout(
-      completeMockSubmit,
-      550,
-    )
+    setNotice(null)
+    void submitAuth()
+  }
+
+  /** 切換密碼明文顯示狀態。 */
+  const handleTogglePassword = (): void => {
+    setShowPassword((currentValue) => !currentValue)
   }
 
   return {
     mode,
     values,
     fieldErrors,
-    notice,
-    scenario,
-    scenarioOptions: authMockScenarioOptions,
+    notice: visibleNotice,
     showPassword,
     isSubmitting,
     accountRef,
     passwordRef,
     confirmPasswordRef,
     handleFieldChange,
-    handleScenarioChange: setScenario,
-    handleTogglePassword: () => {
-      setShowPassword((currentValue) => !currentValue)
-    },
+    handleTogglePassword,
     handleSubmit,
   }
 }

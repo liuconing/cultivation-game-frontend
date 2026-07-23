@@ -5,12 +5,13 @@ import {
   useState,
   type RefObject,
 } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { useLocation } from 'react-router'
 import {
   mockScenarioOptions,
   type MockGameState,
   type MockScenario,
 } from '@/data/gameMock'
+import { useSession } from '@/session'
 import { useMockGameStore } from '@/stores'
 
 export type GameRoute =
@@ -137,6 +138,8 @@ export type IGameShellViewModel = {
   isCharacterDrawerOpen: boolean
   isAccountMenuOpen: boolean
   shellNotice: string | null
+  /** 帳號選單顯示的登入 Email。 */
+  accountLabel: string
   accountButtonRef: RefObject<HTMLButtonElement | null>
   accountMenuRef: RefObject<HTMLDivElement | null>
   accountFirstItemRef: RefObject<HTMLButtonElement | null>
@@ -152,7 +155,7 @@ export type IGameShellViewModel = {
 
 export function useGameShellViewModel(): IGameShellViewModel {
   const location = useLocation()
-  const navigate = useNavigate()
+  const { user, reloadSession, logout } = useSession()
   const gameState = useMockGameStore((state) => state.gameState)
   const setScenario = useMockGameStore((state) => state.setScenario)
   const reset = useMockGameStore((state) => state.reset)
@@ -236,21 +239,26 @@ export function useGameShellViewModel(): IGameShellViewModel {
     setIsAccountMenuOpen(true)
   }
 
-  const handleReloadState = () => {
-    setScenario(gameState.scenario)
-    setShellNotice('已重新載入目前的記憶體 Mock 狀態。')
+  /** 重新向後端檢查角色與 GameState 啟動資料。 */
+  const handleReloadState = (): void => {
+    setShellNotice('正在重新載入帳號與遊戲狀態……')
     handleCloseAccountMenu()
+    void reloadSession().then(() => {
+      setShellNotice('帳號與遊戲狀態已重新載入。')
+    })
   }
 
-  const handleLogout = () => {
+  /** 清除正式登入狀態及目前畫面的 Mock 狀態。 */
+  const handleLogout = (): void => {
     reset()
     setIsAccountMenuOpen(false)
-    navigate('/login')
+    logout()
   }
 
-  const handleReturnToLogin = () => {
+  /** 從失效提示清除 session 並返回登入流程。 */
+  const handleReturnToLogin = (): void => {
     reset()
-    navigate('/login')
+    logout()
   }
 
   return {
@@ -262,6 +270,7 @@ export function useGameShellViewModel(): IGameShellViewModel {
     isCharacterDrawerOpen,
     isAccountMenuOpen,
     shellNotice,
+    accountLabel: user?.email ?? '已登入帳號',
     accountButtonRef,
     accountMenuRef,
     accountFirstItemRef,
