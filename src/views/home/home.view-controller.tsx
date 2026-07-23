@@ -36,6 +36,7 @@ const scenarioTone = {
   turnLimit: 'cinnabar',
   encounter: 'jade',
   bossFirstKill: 'gold',
+  recovered: 'jade',
 } as const
 
 /** 呈現 UI-01 的設計基礎與 Mock GameState 展示板。 */

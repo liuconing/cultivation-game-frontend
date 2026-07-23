@@ -18,6 +18,7 @@ type MockGameStore = {
   equipSkill: (templateId: string) => void
   buyPill: (templateId: string) => void
   usePill: (templateId: string) => void
+  completeCaveRecovery: () => void
   reset: () => void
 }
 
@@ -388,6 +389,36 @@ export const useMockGameStore = create<MockGameStore>((set) => ({
               ? { ...item, quantity: item.quantity - 1 }
               : item,
           ),
+        },
+      }
+    })
+  },
+  completeCaveRecovery: () => {
+    set(({ gameState }) => {
+      const { character, cave } = gameState
+      const isFull =
+        character.health >= character.maxHealth &&
+        character.spiritPower >= character.maxSpiritPower
+      if (isFull || character.spiritStones < cave.finishNowCost) {
+        return { gameState }
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          scenario: 'recovered',
+          notice: `已消耗 ${cave.finishNowCost.toLocaleString()} 靈石完成休養。`,
+          character: {
+            ...character,
+            health: character.maxHealth,
+            spiritPower: character.maxSpiritPower,
+            spiritStones:
+              character.spiritStones - cave.finishNowCost,
+          },
+          cave: {
+            ...cave,
+            minutesToFull: 0,
+          },
         },
       }
     })

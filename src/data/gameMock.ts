@@ -13,6 +13,7 @@ export type MockScenario =
   | 'turnLimit'
   | 'encounter'
   | 'bossFirstKill'
+  | 'recovered'
 
 export type MockCharacter = {
   id: string
@@ -573,6 +574,18 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       ],
     },
   }),
+  recovered: createScenarioFixture('recovered', {
+    notice: '生命與靈力皆已回滿，無需支付靈石。',
+    character: {
+      ...baseGameState.character,
+      health: baseGameState.character.maxHealth,
+      spiritPower: baseGameState.character.maxSpiritPower,
+    },
+    cave: {
+      ...baseGameState.cave,
+      minutesToFull: 0,
+    },
+  }),
 }
 
 export const mockScenarioOptions: Array<{
@@ -594,6 +607,7 @@ export const mockScenarioOptions: Array<{
   { value: 'turnLimit', label: '30 回合失敗', tone: 'cinnabar' },
   { value: 'encounter', label: '奇遇事件', tone: 'jade' },
   { value: 'bossFirstKill', label: 'Boss 首殺', tone: 'gold' },
+  { value: 'recovered', label: '休養已回滿', tone: 'jade' },
 ]
 
 export const getMockGameState = (scenario: MockScenario): MockGameState => {

@@ -18,6 +18,7 @@ import {
 import { CultivationMock } from './cultivation/CultivationMock'
 import { ExploreMock } from './explore/ExploreMock'
 import { LoadoutMock } from './loadout/LoadoutMock'
+import { CaveMock } from './cave/CaveMock'
 
 const compactNumberFormatter = new Intl.NumberFormat('zh-TW', {
   notation: 'compact',
@@ -303,6 +304,9 @@ export function gameShellViewController({
             ) : activeItem.path === '/game/loadout' &&
               !gameState.isLoading ? (
               <LoadoutMock />
+            ) : activeItem.path === '/game/cave' &&
+              !gameState.isLoading ? (
+              <CaveMock />
             ) : (
               <Panel
                 eyebrow={`${activeItem.nextTask} PLACEHOLDER`}
