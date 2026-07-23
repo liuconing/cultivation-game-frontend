@@ -6,8 +6,14 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components'
-import { claimCultivationUsecase } from '@/domain'
-import { useMutation } from '@/hook'
+import {
+  breakthroughUsecase,
+  claimCultivationUsecase,
+  getBreakthroughPreviewUsecase,
+} from '@/domain'
+import type { BreakthroughParams } from '@/domain/repository'
+import { useFetch, useMutation } from '@/hook'
+import { getApiClientError } from '@/lib/axios'
 import { uuid } from '@/lib/uuid'
 import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
@@ -15,6 +21,14 @@ import { useGameRuntime } from '../use-game-runtime'
 /** 修為領取 mutation 使用的冪等參數。 */
 interface ClaimCultivationMutationParams {
   /** 同一次領取與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 突破 mutation 使用的參數。 */
+interface BreakthroughMutationParams {
+  /** 玩家選用的突破丹藥。 */
+  values: BreakthroughParams
+  /** 同一次突破與網路重試共用的冪等鍵。 */
   idempotencyKey: string
 }
 
@@ -35,7 +49,6 @@ export function CultivationMock() {
   const {
     gameState,
     reloadGameState,
-    resolveBreakthrough,
     upgradeSpiritualRoot,
   } = useGameRuntime()
   const [modal, setModal] = useState<CultivationModal>(null)
@@ -44,8 +57,28 @@ export function CultivationMock() {
     'success' | 'failure' | null
   >(null)
   const [claimNotice, setClaimNotice] = useState<string | null>(null)
+  const [breakthroughNotice, setBreakthroughNotice] = useState<
+    string | null
+  >(null)
+  const [selectedPillId, setSelectedPillId] = useState('')
+  const [breakthroughIdempotencyKey, setBreakthroughIdempotencyKey] =
+    useState<string | null>(null)
   const claimKeyRef = useRef<string | null>(null)
   const { character, cultivationState } = gameState
+
+  const breakthroughPreviewQuery = useFetch(
+    getBreakthroughPreviewUsecase,
+    {
+      ...(selectedPillId
+        ? { pillTemplateId: selectedPillId }
+        : {}),
+    },
+    {
+      queryKey: ['breakthrough-preview', selectedPillId],
+      retry: 1,
+      enableGlobalError: false,
+    },
+  )
 
   const claimMutation = useMutation(
     ({ idempotencyKey }: ClaimCultivationMutationParams) =>
@@ -60,15 +93,35 @@ export function CultivationMock() {
       },
     },
   )
+  const breakthroughMutation = useMutation(
+    ({ values, idempotencyKey }: BreakthroughMutationParams) =>
+      breakthroughUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        setBreakthroughIdempotencyKey(null)
+        setLastBreakthroughResult(
+          response.data.succeeded ? 'success' : 'failure',
+        )
+        await reloadGameState()
+        setModal('breakthroughResult')
+      },
+      onError: (error) => {
+        setBreakthroughNotice(getApiClientError(error).message)
+      },
+    },
+  )
 
+  const preview = breakthroughPreviewQuery.data?.data
+  const breakthroughPreviewError = breakthroughPreviewQuery.error
+    ? getApiClientError(breakthroughPreviewQuery.error).message
+    : null
   const isFoundationComplete =
-    character.realm === '築基境' && character.minorRealm === '圓滿'
-  const isCultivationFull =
-    character.cultivation >= character.cultivationTarget
-  const hasEnoughStones =
-    character.spiritStones >= cultivationState.spiritStoneCost
+    preview?.unavailableReasons.includes('V1_REALM_CAP_REACHED') ??
+    false
   const canBreakthrough =
-    isCultivationFull && hasEnoughStones && !isFoundationComplete
+    preview?.canAttempt === true &&
+    !breakthroughMutation.isPending
   const canClaim =
     cultivationState.claimableCultivation > 0 &&
     !gameState.isLoading &&
@@ -80,19 +133,22 @@ export function CultivationMock() {
       cultivationState.rootUpgradeCost &&
     !isFoundationComplete
 
-  const missingBreakthroughRequirements = [
-    !isCultivationFull ? '修為尚未圓滿' : null,
-    !hasEnoughStones
-      ? `缺少 ${(cultivationState.spiritStoneCost - character.spiritStones).toLocaleString()} 靈石`
-      : null,
-    isFoundationComplete ? '金丹內容尚未開放' : null,
-  ].filter((requirement): requirement is string => Boolean(requirement))
+  const breakthroughReasonLabels: Record<string, string> = {
+    BREAKTHROUGH_NOT_READY: '修為尚未圓滿',
+    INSUFFICIENT_SPIRIT_STONES: '靈石不足',
+    ITEM_NOT_OWNED: '未持有選用丹藥',
+    V1_REALM_CAP_REACHED: '金丹內容尚未開放',
+  }
+  const missingBreakthroughRequirements =
+    preview?.unavailableReasons.map(
+      (reason) => breakthroughReasonLabels[reason] ?? reason,
+    ) ?? []
 
   const closeModal = useCallback(() => {
-    if (!isBusy) {
+    if (!isBusy && !breakthroughMutation.isPending) {
       setModal(null)
     }
-  }, [isBusy])
+  }, [breakthroughMutation.isPending, isBusy])
 
   const handleClaim = () => {
     if (!canClaim || isBusy || claimMutation.isPending) {
@@ -109,18 +165,26 @@ export function CultivationMock() {
   }
 
   const handleConfirmBreakthrough = () => {
-    if (!canBreakthrough || isBusy) {
+    if (
+      !canBreakthrough ||
+      isBusy ||
+      breakthroughMutation.isPending
+    ) {
       return
     }
 
-    const outcome = cultivationState.breakthroughOutcome
-    setIsBusy(true)
-    window.setTimeout(() => {
-      resolveBreakthrough(outcome)
-      setLastBreakthroughResult(outcome)
-      setIsBusy(false)
-      setModal('breakthroughResult')
-    }, 550)
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      breakthroughIdempotencyKey,
+      uuid,
+    )
+    setBreakthroughIdempotencyKey(idempotencyKey)
+    setBreakthroughNotice(null)
+    breakthroughMutation.mutate({
+      values: selectedPillId
+        ? { pillTemplateId: selectedPillId }
+        : {},
+      idempotencyKey,
+    })
   }
 
   const handleConfirmRootUpgrade = () => {
@@ -195,12 +259,12 @@ export function CultivationMock() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
-                ['基礎', cultivationState.breakthroughBaseRate],
-                ['靈根', cultivationState.rootBonus],
-                ['氣運', cultivationState.luckBonus],
-                ['丹藥', cultivationState.pillBonus],
-                ['功法', cultivationState.methodBonus],
-                ['保底', cultivationState.pityBonus],
+                ['基礎', preview?.chance?.base ?? 0],
+                ['靈根', preview?.chance?.spiritualRoot ?? 0],
+                ['氣運', preview?.chance?.luck ?? 0],
+                ['丹藥', preview?.chance?.pill ?? 0],
+                ['功法', preview?.chance?.cultivationMethod ?? 0],
+                ['保底', preview?.chance?.pity ?? 0],
               ].map(([label, value]) => (
                 <div
                   className="min-w-0 rounded-md border border-white/10 bg-black/15 p-3"
@@ -218,17 +282,39 @@ export function CultivationMock() {
               <div>
                 <p className="text-xs text-neutral-500">最終成功率</p>
                 <p className="mt-1 font-serif text-3xl tabular-nums text-gold-100">
-                  {Math.min(
-                    95,
-                    Math.max(1, cultivationState.finalRate),
-                  )}
+                  {preview?.chance?.final ?? 0}
                   %
                 </p>
                 <p className="mt-1 text-xs text-neutral-600">
                   費用{' '}
-                  {cultivationState.spiritStoneCost.toLocaleString()} 靈石・
+                  {(preview?.spiritStoneCost ?? 0).toLocaleString()} 靈石・
                   保底第 {cultivationState.pity} 次
                 </p>
+                <label className="mt-3 block text-xs text-neutral-500">
+                  突破丹藥
+                  <select
+                    className="mt-1 min-h-10 w-full rounded-md border border-white/12 bg-ink-950 px-3 text-sm text-neutral-200 focus-visible:outline-2 focus-visible:outline-jade-300"
+                    disabled={breakthroughMutation.isPending}
+                    onChange={(event) =>
+                      setSelectedPillId(event.target.value)
+                    }
+                    value={selectedPillId}
+                  >
+                    <option value="">不使用丹藥</option>
+                    {gameState.pills
+                      .filter((pill) =>
+                        pill.templateId.includes('breakthrough'),
+                      )
+                      .map((pill) => (
+                        <option
+                          key={pill.templateId}
+                          value={pill.templateId}
+                        >
+                          {pill.name}（{pill.quantity}）
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
               <Button
                 className="w-full sm:w-auto"
@@ -246,6 +332,16 @@ export function CultivationMock() {
                   <li key={requirement}>・{requirement}</li>
                 ))}
               </ul>
+            ) : null}
+            {breakthroughNotice ? (
+              <p className="text-xs text-cinnabar-100" role="alert">
+                {breakthroughNotice}
+              </p>
+            ) : null}
+            {breakthroughPreviewError ? (
+              <p className="text-xs text-cinnabar-100" role="alert">
+                {breakthroughPreviewError}
+              </p>
             ) : null}
           </div>
         </Panel>
@@ -289,7 +385,7 @@ export function CultivationMock() {
       </div>
 
       <Modal
-        isBusy={isBusy}
+        isBusy={isBusy || breakthroughMutation.isPending}
         isOpen={modal === 'breakthroughConfirm'}
         onClose={closeModal}
         title="確認突破"
@@ -297,16 +393,16 @@ export function CultivationMock() {
         <p>
           將消耗{' '}
           <strong className="text-gold-100">
-            {cultivationState.spiritStoneCost.toLocaleString()} 靈石
+            {(preview?.spiritStoneCost ?? 0).toLocaleString()} 靈石
           </strong>
-          ，以 {cultivationState.finalRate}% 成功率突破。
+          ，以 {preview?.chance?.final ?? 0}% 成功率突破。
         </p>
         <dl className="mt-4 grid grid-cols-2 gap-2">
           {[
             ['境界', `${character.realm}・${character.minorRealm}`],
             ['保底', `第 ${cultivationState.pity} 次`],
             ['功法', cultivationState.equippedMethodName ?? '未裝備'],
-            ['結果 fixture', cultivationState.breakthroughOutcome === 'success' ? '成功' : '失敗'],
+            ['丹藥', selectedPillId || '不使用'],
           ].map(([label, value]) => (
             <div
               className="min-w-0 rounded border border-white/10 bg-black/20 p-3"
@@ -318,11 +414,15 @@ export function CultivationMock() {
           ))}
         </dl>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button disabled={isBusy} onClick={closeModal} variant="ghost">
+          <Button
+            disabled={isBusy || breakthroughMutation.isPending}
+            onClick={closeModal}
+            variant="ghost"
+          >
             取消
           </Button>
           <Button
-            isLoading={isBusy}
+            isLoading={breakthroughMutation.isPending}
             onClick={handleConfirmBreakthrough}
             variant="secondary"
           >

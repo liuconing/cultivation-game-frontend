@@ -13,6 +13,12 @@ export interface BreakthroughParams {
   pillTemplateId?: string
 }
 
+/** `GET /breakthrough/preview` 的查詢參數。 */
+export interface BreakthroughPreviewParams {
+  /** 欲選用的突破丹藥模板 ID；不使用時省略。 */
+  pillTemplateId?: string
+}
+
 /** 突破成功率各項加成的計算明細。 */
 export interface BreakthroughChanceBreakdown {
   /** 目前境界的基礎突破率。 */
@@ -31,6 +37,28 @@ export interface BreakthroughChanceBreakdown {
   unclamped: number
   /** 套用上下限後實際使用的突破率。 */
   final: number
+}
+
+/** 後端權威的突破條件與成功率預覽。 */
+export interface BreakthroughPreviewData {
+  /** 目前是否符合所有突破條件。 */
+  canAttempt: boolean
+  /** 無法突破時的穩定原因代碼。 */
+  unavailableReasons: string[]
+  /** 玩家目前修為。 */
+  cultivation: number
+  /** 目前境界的修為上限。 */
+  cultivationCap: number
+  /** 本次突破需要的靈石。 */
+  spiritStoneCost: number
+  /** 玩家目前持有的靈石。 */
+  availableSpiritStones: number
+  /** 玩家選用的丹藥模板 ID。 */
+  pillTemplateId: string | null
+  /** 玩家持有該丹藥的數量。 */
+  pillQuantity: number
+  /** 後端成功率明細；已達 V1 上限時為 null。 */
+  chance: BreakthroughChanceBreakdown | null
 }
 
 /** 單次突破的機率、消耗與角色狀態結算。 */
@@ -81,6 +109,20 @@ export interface BreakthroughData {
 }
 
 export type BreakthroughRes = ApiSuccess<BreakthroughData>
+export type BreakthroughPreviewRes =
+  ApiSuccess<BreakthroughPreviewData>
+
+/** 讀取指定丹藥選擇下的突破預覽。 */
+export const getBreakthroughPreview = async (
+  params: BreakthroughPreviewParams = {},
+): Promise<BreakthroughPreviewRes> => {
+  const { data } = await apiClient.get<BreakthroughPreviewRes>(
+    apiEndpoints.getBreakthroughPreview.path(),
+    { params },
+  )
+
+  return data
+}
 
 /** 嘗試突破目前大境界。 */
 export const breakthrough = async (

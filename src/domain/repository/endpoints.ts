@@ -75,6 +75,11 @@ export const apiEndpoints = {
     smokeExpectation: 'unauthorized',
     smokeBody: {},
   },
+  getBreakthroughPreview: {
+    method: 'GET',
+    path: staticPath('/breakthrough/preview'),
+    smokeExpectation: 'unauthorized',
+  },
   upgradeSpiritualRoot: {
     method: 'POST',
     path: staticPath('/spiritual-root/upgrade'),
