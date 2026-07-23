@@ -12,7 +12,7 @@ import type {
   MockInventoryItem,
   MockPill,
 } from '@/data/gameMock'
-import { useMockGameStore } from '@/stores'
+import { useGameRuntime } from '../use-game-runtime'
 
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
 type InventoryFilter = 'all' | MockInventoryItem['type']
@@ -65,19 +65,15 @@ function ItemSummary({
 
 /** UI-07 五分頁整備、物品抽屜與丹藥商店的記憶體 Mock。 */
 export function LoadoutMock() {
-  const gameState = useMockGameStore((state) => state.gameState)
-  const equipEquipment = useMockGameStore(
-    (state) => state.equipEquipment,
-  )
-  const sellEquipment = useMockGameStore(
-    (state) => state.sellEquipment,
-  )
-  const equipCultivationMethod = useMockGameStore(
-    (state) => state.equipCultivationMethod,
-  )
-  const equipSkill = useMockGameStore((state) => state.equipSkill)
-  const buyPill = useMockGameStore((state) => state.buyPill)
-  const consumePill = useMockGameStore((state) => state.usePill)
+  const {
+    gameState,
+    equipEquipment,
+    sellEquipment,
+    equipCultivationMethod,
+    equipSkill,
+    buyPill,
+    consumePill,
+  } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
   const [inventoryFilter, setInventoryFilter] =
     useState<InventoryFilter>('all')

@@ -6,18 +6,15 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components'
-import { useMockGameStore } from '@/stores'
+import { useGameRuntime } from '../use-game-runtime'
 
 type CaveModal = 'confirm' | 'success' | null
 
 /** UI-08 洞府休養、本地計時預覽與立即完成 Mock。 */
 export function CaveMock() {
-  const gameState = useMockGameStore((state) => state.gameState)
-  const completeCaveRecovery = useMockGameStore(
-    (state) => state.completeCaveRecovery,
-  )
+  const { gameState, completeCaveRecovery } = useGameRuntime()
   const { character, cave } = gameState
-  const previewSource = `${gameState.scenario}:${character.health}:${character.spiritPower}`
+  const previewSource = `${character.health}:${character.spiritPower}`
   const [preview, setPreview] = useState({
     source: previewSource,
     health: character.health,

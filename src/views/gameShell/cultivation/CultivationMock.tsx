@@ -6,7 +6,7 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components'
-import { useMockGameStore } from '@/stores'
+import { useGameRuntime } from '../use-game-runtime'
 
 type CultivationModal =
   | 'breakthroughConfirm'
@@ -22,16 +22,12 @@ const formatDuration = (minutes: number) => {
 
 /** UI-05 修煉、突破與靈根成長的純記憶體互動 Mock。 */
 export function CultivationMock() {
-  const gameState = useMockGameStore((state) => state.gameState)
-  const claimCultivation = useMockGameStore(
-    (state) => state.claimCultivation,
-  )
-  const resolveBreakthrough = useMockGameStore(
-    (state) => state.resolveBreakthrough,
-  )
-  const upgradeSpiritualRoot = useMockGameStore(
-    (state) => state.upgradeSpiritualRoot,
-  )
+  const {
+    gameState,
+    claimCultivation,
+    resolveBreakthrough,
+    upgradeSpiritualRoot,
+  } = useGameRuntime()
   const [modal, setModal] = useState<CultivationModal>(null)
   const [isBusy, setIsBusy] = useState(false)
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
@@ -40,7 +36,7 @@ export function CultivationMock() {
   const { character, cultivationState } = gameState
 
   const isFoundationComplete =
-    gameState.scenario === 'foundationComplete'
+    character.realm === '築基境' && character.minorRealm === '圓滿'
   const isCultivationFull =
     character.cultivation >= character.cultivationTarget
   const hasEnoughStones =

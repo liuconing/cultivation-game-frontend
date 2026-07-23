@@ -8,93 +8,165 @@ import type { ApiSuccess, IsoDateString } from './common'
 import { apiEndpoints } from './endpoints'
 import type { ItemEffect } from './itemCatalog.repo'
 
-/** 背包中可堆疊道具的數量資料。 */
+/** 背包內可堆疊物品的數量資料。 */
 export interface GameInventoryEntry {
-  /** 道具模板 ID。 */
+  /** 物品模板 ID。 */
   templateId: string
-  /** 背包目前持有數量。 */
+  /** 玩家目前持有數量。 */
   quantity: number
 }
 
-/** 角色持有的單一不可堆疊裝備 instance。 */
+/** 玩家持有的一件不可堆疊裝備實例。 */
 export interface GameEquipmentInstance {
-  /** 裝備 instance 唯一識別碼。 */
+  /** 裝備實例的唯一識別碼。 */
   instanceId: string
-  /** 裝備對應的模板 ID。 */
+  /** 裝備所對應的物品模板 ID。 */
   templateId: string
-  /** 建立 instance 時產生的隨機詞條。 */
+  /** 建立實例時由後端固定下來的隨機詞條。 */
   rolledAffixes: ItemEffect[]
-  /** 取得此裝備的時間。 */
+  /** 玩家取得裝備的時間。 */
   acquiredAt: IsoDateString
 }
 
-/** 休養狀態的即時預覽。 */
+/** 洞府自然休養與立即完成的預覽。 */
 export interface RestPreview {
-  /** 依經過時間預計自然恢復後的生命值。 */
+  /** 套用自然恢復後的目前生命。 */
   currentHp: number
-  /** 依經過時間預計自然恢復後的靈力值。 */
+  /** 套用自然恢復後的目前靈力。 */
   currentMp: number
-  /** 立即補滿生命與靈力所需的靈石。 */
+  /** 角色派生屬性的生命上限。 */
+  maxHp: number
+  /** 角色派生屬性的靈力上限。 */
+  maxMp: number
+  /** 是否已經完全恢復。 */
+  isFullyRestored: boolean
+  /** 依伺服器時間推算的剩餘恢復秒數。 */
+  secondsToFull: number
+  /** 預計完全恢復的 ISO 時間；已回滿時為 null。 */
+  fullyRestoredAt: IsoDateString | null
+  /** 使用靈石立即完成所需費用。 */
   instantCompleteCost: number
 }
 
-/** 遊戲地圖的顯示與解鎖資料。 */
+/** 離線修煉可領取修為的後端預覽。 */
+export interface CultivationPreview {
+  /** 經功法與靈根倍率計算後的每小時修煉速度。 */
+  cultivationPerHour: number
+  /** 目前境界的修為上限。 */
+  cultivationCap: number
+  /** 離線收益最多累積的秒數。 */
+  idleCapSeconds: number
+  /** 離線收益最多可累積的修為。 */
+  idleCapCultivation: number
+  /** 目前可領取的修為。 */
+  claimableCultivation: number
+  /** 目前累積的有效離線秒數。 */
+  claimableSeconds: number
+}
+
+/** 靈根品質升級的資源與條件預覽。 */
+export interface SpiritualRootUpgradePreview {
+  /** 下一階靈根品質；已達上限時為 null。 */
+  nextQuality: string | null
+  /** 升級需要的靈根精華。 */
+  requiredEssence: number
+  /** 玩家目前持有的靈根精華。 */
+  availableEssence: number
+  /** 目前是否符合升級條件。 */
+  canUpgrade: boolean
+  /** 無法升級時供畫面顯示的原因；可升級時為 null。 */
+  unavailableReason: string | null
+}
+
+/** 遊戲狀態中可顯示與配置的技能資料。 */
+export interface GameSkill {
+  /** 技能模板 ID。 */
+  id: string
+  /** 技能顯示名稱。 */
+  name: string
+  /** 技能類型。 */
+  type: 'active' | 'passive'
+  /** 主動技能的靈力消耗；被動技能為 0。 */
+  mpCost: number
+  /** 主動技能的冷卻回合；被動技能為 0。 */
+  cooldownTurns: number
+  /** 技能效果的中文說明。 */
+  description: string
+  /** 玩家是否已學會此技能。 */
+  learned: boolean
+  /** 技能目前是否裝備在對應欄位。 */
+  equipped: boolean
+}
+
+/** 探索頁使用的地圖狀態與後端倍率。 */
 export interface GameMap {
   /** 地圖唯一識別碼。 */
   id: string
   /** 地圖顯示名稱。 */
   name: string
-  /** 解鎖地圖所需的大境界。 */
+  /** 解鎖地圖需要的境界。 */
   unlockRealm: string
-  /** 建議進入地圖的大境界。 */
+  /** 建議挑戰境界。 */
   recommendedRealm: string
-  /** 地圖事件的基礎修為獎勵。 */
+  /** 地圖基礎修為獎勵。 */
   baseCultivation: number
-  /** 地圖事件的基礎靈石獎勵。 */
+  /** 地圖基礎靈石獎勵。 */
   baseSpiritStones: number
-  /** 目前角色是否已解鎖此地圖。 */
+  /** 玩家是否已解鎖地圖。 */
   unlocked: boolean
+  /** 角色與地圖建議境界之間的階級差。 */
+  realmDifference: number
+  /** 境界壓制後的挑戰獎勵倍率。 */
+  challengeRewardMultiplier: number
+  /** 境界壓制後的掉落倍率。 */
+  dropMultiplier: number
 }
 
-/** 初次載入遊戲畫面所需的完整狀態。 */
+/** `GET /game/state` 回傳的完整遊戲狀態。 */
 export interface GameStateData {
-  /** 後端產生此份狀態的伺服器時間。 */
+  /** 後端產生回應時的 ISO 時間。 */
   serverTime: IsoDateString
-  /** 目前登入使用者的完整角色資料。 */
+  /** 已登入玩家的角色資料。 */
   character: CharacterResponse
-  /** 套用裝備、功法與靈根後的最終屬性。 */
+  /** 套用裝備與功法後的派生屬性。 */
   derivedStats: CharacterStats
-  /** 背包中的可堆疊道具。 */
+  /** 玩家持有的可堆疊物品。 */
   inventory: GameInventoryEntry[]
-  /** 角色持有的所有裝備 instance。 */
+  /** 玩家持有的不可堆疊裝備。 */
   equipmentInstances: GameEquipmentInstance[]
-  /** 各裝備欄目前穿戴的 instance ID。 */
+  /** 六個裝備欄目前穿戴的 instance ID。 */
   equipment: CharacterEquippedItemIds
   /** 目前裝備的功法模板 ID。 */
   equippedCultivationMethodId: string | null
-  /** 角色已學會的技能 ID。 */
+  /** 玩家已學會的技能模板 ID。 */
   learnedSkillIds: string[]
-  /** 目前配置的主動技能 ID。 */
+  /** 目前裝備的主動技能模板 ID。 */
   equippedActiveSkillId: string | null
-  /** 目前配置的被動技能 ID。 */
+  /** 目前裝備的被動技能模板 ID。 */
   equippedPassiveSkillId: string | null
-  /** 已解鎖的地圖 ID。 */
+  /** 玩家已解鎖的地圖 ID。 */
   unlockedMapIds: string[]
-  /** 所有 V1 地圖及其解鎖狀態。 */
-  maps: GameMap[]
-  /** 已首次通關的 Boss ID。 */
+  /** 玩家已首通的 Boss ID。 */
   firstClearBossIds: string[]
-  /** 目前可以領取的修為數量。 */
+  /** 目前可領取的修為。 */
   claimableCultivation: number
-  /** 本次修為計算採計的離線秒數。 */
+  /** 可領取修為對應的有效離線秒數。 */
   claimableCultivationSeconds: number
-  /** 目前休養恢復與立即完成費用預覽。 */
+  /** 完整修煉收益預覽。 */
+  cultivationPreview: CultivationPreview
+  /** 洞府休養預覽。 */
   restPreview: RestPreview
+  /** 靈根升級預覽。 */
+  spiritualRootUpgradePreview: SpiritualRootUpgradePreview
+  /** 玩家可使用的技能資料。 */
+  skills: GameSkill[]
+  /** V1 可探索地圖及其狀態。 */
+  maps: GameMap[]
 }
 
 export type GetGameStateRes = ApiSuccess<GameStateData>
 
-/** 取得目前登入角色的完整遊戲狀態。 */
+/** 讀取目前登入玩家的完整遊戲狀態。 */
 export const getGameState = async (): Promise<GetGameStateRes> => {
   const { data } = await apiClient.get<GetGameStateRes>(
     apiEndpoints.getGameState.path(),

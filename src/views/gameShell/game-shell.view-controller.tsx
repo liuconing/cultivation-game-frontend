@@ -5,7 +5,6 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components'
-import type { MockScenario } from '@/data/gameMock'
 import { bind } from '@/utils'
 import {
   useGameShellViewModel,
@@ -34,7 +33,6 @@ export function gameShellViewController({
   gameState,
   activeItem,
   navigationItems,
-  scenarioOptions,
   indicators,
   isCharacterDrawerOpen,
   isAccountMenuOpen,
@@ -43,17 +41,13 @@ export function gameShellViewController({
   accountButtonRef,
   accountMenuRef,
   accountFirstItemRef,
-  handleScenarioChange,
   handleOpenCharacterDrawer,
   handleCloseCharacterDrawer,
   handleToggleAccountMenu,
   handleReloadState,
   handleLogout,
-  handleReturnToLogin,
 }: IGameShellViewModel) {
   const { character } = gameState
-  const isSessionExpired = gameState.scenario === 'sessionExpired'
-  const isDisconnected = gameState.scenario === 'disconnected'
 
   return (
     <div className="ink-wash min-h-dvh bg-ink-950 text-neutral-200">
@@ -232,25 +226,7 @@ export function gameShellViewController({
                 {activeItem.label}主框架
               </p>
             </div>
-            <label className="min-w-0 text-xs text-neutral-500 sm:w-56">
-              <span className="sr-only">Mock 情境</span>
-              <select
-                aria-label="切換遊戲框架 Mock 情境"
-                className="min-h-10 w-full rounded-md border border-white/14 bg-ink-950 px-3 text-sm text-neutral-200 focus-visible:outline-2 focus-visible:outline-jade-300"
-                onChange={(event) => {
-                  handleScenarioChange(
-                    event.target.value as MockScenario,
-                  )
-                }}
-                value={gameState.scenario}
-              >
-                {scenarioOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <StatusBadge tone="jade">後端資料已同步</StatusBadge>
           </div>
 
           {shellNotice ? (
@@ -264,35 +240,13 @@ export function gameShellViewController({
           ) : null}
 
           {gameState.notice ? (
-            <div
-              aria-live={isSessionExpired ? 'assertive' : 'polite'}
-              className={`mb-4 flex flex-col gap-3 rounded-md border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
-                isSessionExpired || isDisconnected
-                  ? 'border-cinnabar-400/30 bg-cinnabar-400/[0.08] text-cinnabar-100'
-                  : 'border-gold-400/25 bg-gold-400/[0.07] text-gold-100'
-              }`}
-              role={isSessionExpired ? 'alert' : 'status'}
+            <p
+              aria-live="polite"
+              className="mb-4 rounded-md border border-gold-400/25 bg-gold-400/[0.07] px-4 py-3 text-sm text-gold-100"
+              role="status"
             >
-              <span className="min-w-0 break-words">{gameState.notice}</span>
-              {isSessionExpired ? (
-                <Button
-                  className="w-full shrink-0 sm:w-auto"
-                  onClick={handleReturnToLogin}
-                  variant="danger"
-                >
-                  返回登入
-                </Button>
-              ) : null}
-              {isDisconnected ? (
-                <Button
-                  className="w-full shrink-0 sm:w-auto"
-                  onClick={handleReloadState}
-                  variant="secondary"
-                >
-                  重試載入
-                </Button>
-              ) : null}
-            </div>
+              {gameState.notice}
+            </p>
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(17rem,0.8fr)]">
@@ -325,7 +279,7 @@ export function gameShellViewController({
                       className="mx-auto block size-7 animate-spin rounded-full border-2 border-gold-300/60 border-r-transparent"
                     />
                     <p className="mt-3 text-sm text-neutral-500">
-                      載入 GameState Mock
+                      載入遊戲資料
                     </p>
                   </div>
                 </div>
@@ -365,17 +319,9 @@ export function gameShellViewController({
                   </dd>
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/15 p-3">
-                  <dt className="text-xs text-neutral-600">Mock 情境</dt>
-                  <dd className="mt-1 truncate text-neutral-300">
-                    {scenarioOptions.find(
-                      (option) => option.value === gameState.scenario,
-                    )?.label ?? gameState.scenario}
-                  </dd>
-                </div>
-                <div className="rounded-md border border-white/10 bg-black/15 p-3">
                   <dt className="text-xs text-neutral-600">資料來源</dt>
                   <dd className="mt-1 text-neutral-300">
-                    Zustand 記憶體 store
+                    Session GameState／TanStack Query
                   </dd>
                 </div>
               </dl>

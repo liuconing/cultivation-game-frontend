@@ -6,7 +6,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router'
 import { Button, Panel, StatusBadge } from '@/components'
-import { useMockGameStore } from '@/stores'
+import { useGameRuntime } from '../use-game-runtime'
 
 const mapStatusCopy = {
   unlocked: {
@@ -29,10 +29,7 @@ const mapStatusCopy = {
 /** UI-06 地圖、探索提交與全螢幕結果的純記憶體 Mock。 */
 export function ExploreMock() {
   const navigate = useNavigate()
-  const gameState = useMockGameStore((state) => state.gameState)
-  const resolveExploration = useMockGameStore(
-    (state) => state.resolveExploration,
-  )
+  const { gameState, resolveExploration } = useGameRuntime()
   const [selectedMapId, setSelectedMapId] = useState(
     gameState.maps[0]?.id ?? '',
   )
@@ -44,7 +41,7 @@ export function ExploreMock() {
     gameState.maps.find((map) => map.id === selectedMapId) ??
     gameState.maps[0]
   const battle = gameState.battle
-  const isEncounter = gameState.scenario === 'encounter'
+  const isEncounter = false
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
     gameState.character.spiritPower /

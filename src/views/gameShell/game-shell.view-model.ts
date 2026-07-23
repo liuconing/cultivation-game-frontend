@@ -6,13 +6,9 @@ import {
   type RefObject,
 } from 'react'
 import { useLocation } from 'react-router'
-import {
-  mockScenarioOptions,
-  type MockGameState,
-  type MockScenario,
-} from '@/data/gameMock'
 import { useSession } from '@/session'
-import { useMockGameStore } from '@/stores'
+import type { GameViewState } from './game-state.adapter'
+import { useGameRuntime } from './use-game-runtime'
 
 export type GameRoute =
   | '/game/cultivation'
@@ -20,7 +16,7 @@ export type GameRoute =
   | '/game/loadout'
   | '/game/cave'
 
-export type GameNavigationItem = {
+export interface GameNavigationItem {
   path: GameRoute
   label: string
   shortLabel: string
@@ -29,7 +25,7 @@ export type GameNavigationItem = {
   nextTask: string
 }
 
-export type GlobalIndicator = {
+export interface GlobalIndicator {
   id: string
   label: string
   tone: 'jade' | 'cinnabar' | 'gold'
@@ -40,64 +36,66 @@ export const gameNavigationItems: GameNavigationItem[] = [
     path: '/game/cultivation',
     label: '修煉',
     shortLabel: '修煉',
-    glyph: '修',
-    description: '放置修為、境界進度、突破與靈根成長。',
-    nextTask: 'UI-05',
+    glyph: '煉',
+    description: '領取離線修為、突破境界並提升靈根品質。',
+    nextTask: 'FE-04',
   },
   {
     path: '/game/explore',
     label: '探索',
     shortLabel: '探索',
-    glyph: '遊',
-    description: '選擇地圖並查看探索、事件與戰鬥結果。',
-    nextTask: 'UI-06',
+    glyph: '探',
+    description: '選擇已解鎖地圖，進行探索並查看戰鬥結果。',
+    nextTask: 'FE-06',
   },
   {
     path: '/game/loadout',
     label: '整備',
     shortLabel: '整備',
-    glyph: '備',
+    glyph: '裝',
     description: '管理背包、裝備、功法、技能與丹藥。',
-    nextTask: 'UI-07',
+    nextTask: 'FE-08',
   },
   {
     path: '/game/cave',
     label: '洞府',
     shortLabel: '洞府',
     glyph: '府',
-    description: '查看生命與靈力休養進度。',
-    nextTask: 'UI-08',
+    description: '查看自然恢復進度，或使用靈石立即完成休養。',
+    nextTask: 'FE-05',
   },
 ]
 
+/** 判斷目前路徑是否為遊戲分頁。 */
 const isGameRoute = (path: string): path is GameRoute => {
   return gameNavigationItems.some((item) => item.path === path)
 }
 
+/** 依正式 GameState 建立頂部全域狀態提示。 */
 const getGlobalIndicators = (
-  gameState: MockGameState,
+  gameState: GameViewState,
 ): GlobalIndicator[] => {
-  const { character, scenario } = gameState
+  const { character } = gameState
   const indicators: GlobalIndicator[] = []
 
-  if (character.cultivation >= character.cultivationTarget) {
-    indicators.push({
-      id: 'breakthrough',
-      label: '可突破',
-      tone: 'gold',
-    })
-  } else {
-    indicators.push({
-      id: 'claim',
-      label: '可領取修為',
-      tone: 'jade',
-    })
-  }
+  indicators.push(
+    character.cultivation >= character.cultivationTarget
+      ? {
+          id: 'breakthrough',
+          label: '可突破',
+          tone: 'gold',
+        }
+      : {
+          id: 'claim',
+          label: '可領取修為',
+          tone: 'jade',
+        },
+  )
 
   if (character.health / character.maxHealth < 0.3) {
     indicators.push({
       id: 'health',
-      label: '生命不足',
+      label: '生命偏低',
       tone: 'cinnabar',
     })
   }
@@ -105,23 +103,7 @@ const getGlobalIndicators = (
   if (character.spiritPower / character.maxSpiritPower < 0.2) {
     indicators.push({
       id: 'spirit',
-      label: '靈力不足',
-      tone: 'cinnabar',
-    })
-  }
-
-  if (scenario === 'disconnected') {
-    indicators.push({
-      id: 'disconnected',
-      label: '連線中斷',
-      tone: 'cinnabar',
-    })
-  }
-
-  if (scenario === 'sessionExpired') {
-    indicators.push({
-      id: 'session',
-      label: 'Session 已失效',
+      label: '靈力偏低',
       tone: 'cinnabar',
     })
   }
@@ -129,36 +111,32 @@ const getGlobalIndicators = (
   return indicators
 }
 
-export type IGameShellViewModel = {
-  gameState: MockGameState
+export interface IGameShellViewModel {
+  gameState: GameViewState
   activeItem: GameNavigationItem
   navigationItems: GameNavigationItem[]
-  scenarioOptions: typeof mockScenarioOptions
   indicators: GlobalIndicator[]
   isCharacterDrawerOpen: boolean
   isAccountMenuOpen: boolean
   shellNotice: string | null
-  /** 帳號選單顯示的登入 Email。 */
+  /** 目前登入帳號的 Email。 */
   accountLabel: string
   accountButtonRef: RefObject<HTMLButtonElement | null>
   accountMenuRef: RefObject<HTMLDivElement | null>
   accountFirstItemRef: RefObject<HTMLButtonElement | null>
-  handleScenarioChange: (scenario: MockScenario) => void
   handleOpenCharacterDrawer: () => void
   handleCloseCharacterDrawer: () => void
   handleToggleAccountMenu: () => void
   handleCloseAccountMenu: (restoreFocus?: boolean) => void
   handleReloadState: () => void
   handleLogout: () => void
-  handleReturnToLogin: () => void
 }
 
+/** 提供 Game Shell 導覽、帳號選單與正式遊戲資料。 */
 export function useGameShellViewModel(): IGameShellViewModel {
   const location = useLocation()
-  const { user, reloadSession, logout } = useSession()
-  const gameState = useMockGameStore((state) => state.gameState)
-  const setScenario = useMockGameStore((state) => state.setScenario)
-  const reset = useMockGameStore((state) => state.reset)
+  const { user, logout } = useSession()
+  const { gameState, reloadGameState } = useGameRuntime()
   const [isCharacterDrawerOpen, setIsCharacterDrawerOpen] =
     useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
@@ -215,49 +193,37 @@ export function useGameShellViewModel(): IGameShellViewModel {
     }
   }, [handleCloseAccountMenu, isAccountMenuOpen])
 
-  const handleScenarioChange = (scenario: MockScenario) => {
-    setScenario(scenario)
-    setShellNotice(null)
-    setIsAccountMenuOpen(false)
-    setIsCharacterDrawerOpen(false)
-  }
-
-  const handleOpenCharacterDrawer = () => {
+  /** 開啟角色資訊抽屜。 */
+  const handleOpenCharacterDrawer = (): void => {
     setIsCharacterDrawerOpen(true)
   }
 
-  const handleCloseCharacterDrawer = useCallback(() => {
+  /** 關閉角色資訊抽屜。 */
+  const handleCloseCharacterDrawer = useCallback((): void => {
     setIsCharacterDrawerOpen(false)
   }, [])
 
-  const handleToggleAccountMenu = () => {
+  /** 切換帳號操作選單。 */
+  const handleToggleAccountMenu = (): void => {
     if (isAccountMenuOpen) {
       handleCloseAccountMenu()
       return
     }
-
     setIsAccountMenuOpen(true)
   }
 
-  /** 重新向後端檢查角色與 GameState 啟動資料。 */
+  /** 重新向後端同步角色與 GameState。 */
   const handleReloadState = (): void => {
-    setShellNotice('正在重新載入帳號與遊戲狀態……')
+    setShellNotice('正在重新同步遊戲狀態…')
     handleCloseAccountMenu()
-    void reloadSession().then(() => {
-      setShellNotice('帳號與遊戲狀態已重新載入。')
+    void reloadGameState().then(() => {
+      setShellNotice('遊戲狀態已同步。')
     })
   }
 
-  /** 清除正式登入狀態及目前畫面的 Mock 狀態。 */
+  /** 清除登入狀態並返回登入頁。 */
   const handleLogout = (): void => {
-    reset()
     setIsAccountMenuOpen(false)
-    logout()
-  }
-
-  /** 從失效提示清除 session 並返回登入流程。 */
-  const handleReturnToLogin = (): void => {
-    reset()
     logout()
   }
 
@@ -265,22 +231,19 @@ export function useGameShellViewModel(): IGameShellViewModel {
     gameState,
     activeItem,
     navigationItems: gameNavigationItems,
-    scenarioOptions: mockScenarioOptions,
     indicators: getGlobalIndicators(gameState),
     isCharacterDrawerOpen,
     isAccountMenuOpen,
     shellNotice,
-    accountLabel: user?.email ?? '已登入帳號',
+    accountLabel: user?.email ?? '未登入帳號',
     accountButtonRef,
     accountMenuRef,
     accountFirstItemRef,
-    handleScenarioChange,
     handleOpenCharacterDrawer,
     handleCloseCharacterDrawer,
     handleToggleAccountMenu,
     handleCloseAccountMenu,
     handleReloadState,
     handleLogout,
-    handleReturnToLogin,
   }
 }
