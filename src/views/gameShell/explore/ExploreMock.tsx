@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -12,6 +13,7 @@ import { useMutation } from '@/hook'
 import { uuid } from '@/lib/uuid'
 import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
+import { createExplorationResultView } from './exploration-result.adapter'
 
 /** 探索 mutation 使用的參數。 */
 interface ExploreMutationParams {
@@ -55,8 +57,15 @@ export function ExploreMock() {
   const selectedMap =
     gameState.maps.find((map) => map.id === selectedMapId) ??
     gameState.maps[0]
-  const battle = gameState.battle
-  const isEncounter = explorationResult?.eventType === 'encounter'
+  const resultView = useMemo(
+    () =>
+      explorationResult
+        ? createExplorationResultView(explorationResult)
+        : null,
+    [explorationResult],
+  )
+  const battle = resultView?.battle ?? null
+  const isEncounter = resultView?.kind === 'event'
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
     gameState.character.spiritPower /
@@ -69,8 +78,8 @@ export function ExploreMock() {
       onSuccess: async (response) => {
         exploreKeyRef.current = null
         setExplorationResult(response.data)
-        setIsResultOpen(true)
         await reloadGameState()
+        setIsResultOpen(true)
       },
     },
   )
@@ -283,9 +292,7 @@ export function ExploreMock() {
                   className="mt-1 break-words font-serif text-2xl text-neutral-100"
                   id="exploration-result-title"
                 >
-                  {isEncounter
-                    ? '雲遊丹師的奇遇'
-                    : battle?.title ?? '探索結果'}
+                  {resultView?.title ?? '探索結果'}
                 </h2>
               </div>
               <StatusBadge
@@ -317,11 +324,20 @@ export function ExploreMock() {
                     緣
                   </p>
                   <p className="mt-5 text-lg text-neutral-200">
-                    丹師見你道心澄澈，贈予小還丹與靈石。
+                    {resultView?.eventMessage}
                   </p>
                   <p className="mt-2 text-sm text-neutral-500">
-                    無戰鬥・生命與靈力不變
+                    {resultView?.createdEquipmentIds.length
+                      ? `已取得 ${resultView.createdEquipmentIds.length} 件裝備。`
+                      : '本次沒有裝備 instance。'}
                   </p>
+                  {resultView?.rewardLines.length ? (
+                    <ul className="mt-4 grid gap-1 text-sm text-gold-100">
+                      {resultView.rewardLines.map((reward) => (
+                        <li key={reward}>・{reward}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
             ) : (
