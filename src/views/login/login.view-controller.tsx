@@ -25,7 +25,7 @@ export function loginViewController({
   const isRegister = mode === 'register'
   const title = isRegister ? '建立道籍' : '重返仙途'
   const description = isRegister
-    ? '建立帳號後，下一步將由角色建立流程接續。'
+    ? '建立帳號後會立即登入，並由角色建立流程接續。'
     : '登入後將依角色狀態前往建立角色或遊戲畫面。'
 
   const passwordToggle = (
@@ -177,23 +177,14 @@ export function loginViewController({
             </form>
 
             <div className="mt-5 flex flex-col gap-3 text-center text-sm">
-              {notice?.tone === 'success' && isRegister ? (
-                <Link
-                  className="text-jade-200 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
-                  to="/login"
-                >
-                  註冊成功，返回登入
-                </Link>
-              ) : (
-                <Link
-                  className="text-neutral-400 underline-offset-4 hover:text-jade-200 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
-                  to={isRegister ? '/login' : '/register'}
-                >
-                  {isRegister
-                    ? '已有道籍？返回登入'
-                    : '尚無道籍？建立帳號'}
-                </Link>
-              )}
+              <Link
+                className="text-neutral-400 underline-offset-4 hover:text-jade-200 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
+                to={isRegister ? '/login' : '/register'}
+              >
+                {isRegister
+                  ? '已有道籍？返回登入'
+                  : '尚無道籍？建立帳號'}
+              </Link>
               <Link
                 className="text-xs text-neutral-600 underline-offset-4 hover:text-neutral-400 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
                 to="/foundation"

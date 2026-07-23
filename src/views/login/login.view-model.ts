@@ -194,9 +194,10 @@ export function useLoginViewModel(): ILoginViewModel {
     })
   }
 
-  /** 呼叫目前模式對應的正式認證 API。 */
+  /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
   const submitAuth = async (): Promise<void> => {
     setIsSubmitting(true)
+    let registrationCompleted = false
 
     try {
       const input = {
@@ -206,17 +207,22 @@ export function useLoginViewModel(): ILoginViewModel {
 
       if (mode === 'register') {
         await registerUserUsecase(input)
-        setNotice({
-          tone: 'success',
-          message: '道籍建立成功，請返回登入。',
-        })
-        return
+        registrationCompleted = true
       }
 
       const response = await loginUserUsecase(input)
       setAuth(response.data)
       navigate(getReturnPath(location.state), { replace: true })
     } catch (error) {
+      if (registrationCompleted) {
+        setNotice({
+          tone: 'error',
+          message:
+            '道籍已建立，但自動登入失敗，請返回登入後重試。',
+        })
+        return
+      }
+
       handleAuthError(error)
     } finally {
       setIsSubmitting(false)
