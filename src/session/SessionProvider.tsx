@@ -1,13 +1,10 @@
 import { useMemo, type PropsWithChildren } from 'react'
-import {
-  useQuery,
-  useQueryClient,
-  type QueryFunctionContext,
-} from '@/lib/react-query'
+import { useQueryClient } from '@/lib/react-query'
 import {
   getGameStateUsecase,
   getMyCharacterUsecase,
 } from '@/domain'
+import { useFetch } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useAuthStore } from '@/stores'
 import { SessionContext } from './session-context'
@@ -20,19 +17,21 @@ import type {
 /** Session 啟動查詢使用的固定 query key 前綴。 */
 const SESSION_QUERY_KEY = 'session-bootstrap'
 
+/** Session 啟動查詢需要的參數。 */
+interface BootstrapSessionParams {
+  /** 目前登入 session 的 JWT token。 */
+  token: string
+}
+
 /**
  * 依目前 token 載入角色與完整 GameState。
  *
- * @param context - TanStack Query 提供的 query key 資訊。
+ * @param params - 目前登入 session 的 token。
  * @returns 無角色或已完整載入的 session 啟動結果。
  */
 const bootstrapSession = async ({
-  queryKey,
-}: QueryFunctionContext<
-  readonly [typeof SESSION_QUERY_KEY, string]
->): Promise<SessionBootstrapData> => {
-  const [, token] = queryKey
-
+  token,
+}: BootstrapSessionParams): Promise<SessionBootstrapData> => {
   if (!token) {
     throw new Error('缺少登入 token')
   }
@@ -101,14 +100,18 @@ export function SessionProvider({
   const hasHydrated = useAuthStore((state) => state.hasHydrated)
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const queryClient = useQueryClient()
-  const sessionQuery = useQuery({
-    queryKey: [SESSION_QUERY_KEY, token ?? ''],
-    queryFn: bootstrapSession,
-    enabled: hasHydrated && Boolean(token),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: false,
-    retry: shouldRetrySession,
-  })
+  const sessionQuery = useFetch(
+    bootstrapSession,
+    { token: token ?? '' },
+    {
+      queryKey: [SESSION_QUERY_KEY, token ?? ''],
+      enabled: hasHydrated && Boolean(token),
+      staleTime: Number.POSITIVE_INFINITY,
+      refetchOnWindowFocus: false,
+      retry: shouldRetrySession,
+      enableGlobalError: false,
+    },
+  )
 
   const status: SessionStatus = !hasHydrated
     ? 'hydrating'

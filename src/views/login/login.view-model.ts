@@ -14,6 +14,7 @@ import {
   type AuthMode,
   type AuthNotice,
 } from '@/data/auth'
+import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useAuthStore } from '@/stores'
 
@@ -96,7 +97,6 @@ export function useLoginViewModel(): ILoginViewModel {
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({})
   const [notice, setNotice] = useState<AuthNotice | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const accountRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
@@ -194,27 +194,16 @@ export function useLoginViewModel(): ILoginViewModel {
     })
   }
 
-  /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
-  const submitAuth = async (): Promise<void> => {
-    setIsSubmitting(true)
-    let registrationCompleted = false
-
-    try {
-      const input = {
-        email: values.account.trim(),
-        password: values.password,
-      }
-
-      if (mode === 'register') {
-        await registerUserUsecase(input)
-        registrationCompleted = true
-      }
-
-      const response = await loginUserUsecase(input)
+  const registerMutation = useMutation(registerUserUsecase, {
+    onError: handleAuthError,
+  })
+  const loginMutation = useMutation(loginUserUsecase, {
+    onSuccess: (response) => {
       setAuth(response.data)
       navigate(getReturnPath(location.state), { replace: true })
-    } catch (error) {
-      if (registrationCompleted) {
+    },
+    onError: (error) => {
+      if (mode === 'register') {
         setNotice({
           tone: 'error',
           message:
@@ -224,8 +213,26 @@ export function useLoginViewModel(): ILoginViewModel {
       }
 
       handleAuthError(error)
-    } finally {
-      setIsSubmitting(false)
+    },
+  })
+  const isSubmitting =
+    registerMutation.isPending || loginMutation.isPending
+
+  /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
+  const submitAuth = async (): Promise<void> => {
+    try {
+      const input = {
+        email: values.account.trim(),
+        password: values.password,
+      }
+
+      if (mode === 'register') {
+        await registerMutation.mutateAsync(input)
+      }
+
+      await loginMutation.mutateAsync(input)
+    } catch {
+      return
     }
   }
 
