@@ -12,7 +12,22 @@ import type {
   MockInventoryItem,
   MockPill,
 } from '@/data/gameMock'
+import { equipSkillsUsecase } from '@/domain'
+import type { EquipSkillsParams } from '@/domain/repository'
+import { useMutation } from '@/hook'
+import { getApiClientError } from '@/lib/axios'
+import { uuid } from '@/lib/uuid'
+import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
+import { createEquipSkillsParams } from './loadout-actions'
+
+/** 技能配置 mutation 使用的參數。 */
+interface EquipSkillsMutationParams {
+  /** 同時包含主動與被動槽位的後端請求。 */
+  values: EquipSkillsParams
+  /** 同一次配置與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
 
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
 type InventoryFilter = 'all' | MockInventoryItem['type']
@@ -70,9 +85,9 @@ export function LoadoutMock() {
     equipEquipment,
     sellEquipment,
     equipCultivationMethod,
-    equipSkill,
     buyPill,
     consumePill,
+    reloadGameState,
   } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
   const [inventoryFilter, setInventoryFilter] =
@@ -84,6 +99,48 @@ export function LoadoutMock() {
   const [confirmAction, setConfirmAction] =
     useState<ConfirmAction>(null)
   const [isBusy, setIsBusy] = useState(false)
+  const [skillNotice, setSkillNotice] = useState<string | null>(null)
+  const [skillIdempotencyKey, setSkillIdempotencyKey] = useState<
+    string | null
+  >(null)
+
+  const equipSkillsMutation = useMutation(
+    ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
+      equipSkillsUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async () => {
+        setSkillIdempotencyKey(null)
+        setSkillNotice('技能配置已同步。')
+        await reloadGameState()
+      },
+      onError: (error) => {
+        setSkillNotice(getApiClientError(error).message)
+      },
+    },
+  )
+
+  /** 配置單一技能時連同另一個既有槽位一併提交。 */
+  const handleEquipSkill = (templateId: string): void => {
+    if (equipSkillsMutation.isPending) {
+      return
+    }
+    const values = createEquipSkillsParams(
+      gameState.skills,
+      templateId,
+    )
+    if (!values) {
+      setSkillNotice('主動與被動技能各需至少持有一項。')
+      return
+    }
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      skillIdempotencyKey,
+      uuid,
+    )
+    setSkillIdempotencyKey(idempotencyKey)
+    setSkillNotice(null)
+    equipSkillsMutation.mutate({ values, idempotencyKey })
+  }
 
   const selectedEquipment = gameState.equipment.find(
     (equipment) => equipment.id === selectedEquipmentId,
@@ -290,6 +347,15 @@ export function LoadoutMock() {
             key={kind}
             title={kind === 'active' ? '主動技能' : '被動技能'}
           >
+            {skillNotice ? (
+              <p
+                aria-live="polite"
+                className="mb-3 text-sm text-jade-100"
+                role="status"
+              >
+                {skillNotice}
+              </p>
+            ) : null}
             <div className="grid gap-2">
               {gameState.skills
                 .filter((skill) => skill.kind === kind)
@@ -311,8 +377,17 @@ export function LoadoutMock() {
                     </div>
                     <Button
                       className="w-full sm:w-auto"
-                      disabled={skill.equipped}
-                      onClick={() => equipSkill(skill.templateId)}
+                      disabled={
+                        skill.equipped ||
+                        equipSkillsMutation.isPending
+                      }
+                      isLoading={
+                        equipSkillsMutation.isPending &&
+                        !skill.equipped
+                      }
+                      onClick={() =>
+                        handleEquipSkill(skill.templateId)
+                      }
                       variant={skill.equipped ? 'ghost' : 'primary'}
                     >
                       {skill.equipped ? '已配置' : '配置技能'}
