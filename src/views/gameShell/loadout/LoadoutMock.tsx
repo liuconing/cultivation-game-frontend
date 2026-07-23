@@ -218,15 +218,17 @@ export function LoadoutMock() {
                   {equipment.equipped ? (
                     <StatusBadge tone="jade">穿戴中</StatusBadge>
                   ) : null}
-                  <Button
-                    className="min-w-0 flex-1 sm:flex-none"
-                    onClick={() =>
-                      setSelectedEquipmentId(equipment.id)
-                    }
-                    variant="ghost"
-                  >
-                    查看比較
-                  </Button>
+                  {!equipment.equipped ? (
+                    <Button
+                      className="min-w-0 flex-1 sm:flex-none"
+                      onClick={() =>
+                        setSelectedEquipmentId(equipment.id)
+                      }
+                      variant="ghost"
+                    >
+                      查看比較
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             ))}

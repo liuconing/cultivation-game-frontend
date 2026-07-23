@@ -90,6 +90,14 @@ export function Drawer({
       aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 flex justify-end bg-black/65 backdrop-blur-sm"
+      onClick={(event) => {
+        if (
+          event.target === event.currentTarget &&
+          !isBusyRef.current
+        ) {
+          onCloseRef.current()
+        }
+      }}
       role="dialog"
     >
       <div
