@@ -59,8 +59,8 @@ export function gameShellViewController({
       <DesktopNavigation navigationItems={navigationItems} />
 
       <div className="min-h-dvh md:pl-56">
-        <header className="sticky top-0 z-30 h-[9.25rem] border-b border-white/12 bg-ink-950/94 px-3 py-3 backdrop-blur-xl sm:h-36 sm:px-5 md:h-32">
-          <div className="mx-auto flex h-full max-w-7xl flex-col gap-2">
+        <header className="sticky top-0 z-30 border-b border-white/12 bg-ink-950/94 px-3 py-3 backdrop-blur-xl sm:px-5">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2">
             <div className="flex min-w-0 items-start justify-between gap-2">
               <button
                 aria-label={`開啟 ${character.name} 的角色詳情`}
