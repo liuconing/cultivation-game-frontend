@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { CharacterCreateView } from '@/views/characterCreate'
 import { HomeView } from '@/views/home'
 import { LoginView } from '@/views/login'
 import { MockDestinationView } from '@/views/mockDestination'
@@ -14,7 +15,7 @@ export function AppRouter() {
         path="/register"
       />
       <Route
-        element={<MockDestinationView />}
+        element={<CharacterCreateView />}
         path="/character/create"
       />
       <Route
