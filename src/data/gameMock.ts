@@ -9,6 +9,7 @@ export type MockScenario =
   | 'longName'
   | 'disconnected'
   | 'sessionExpired'
+  | 'noMethod'
 
 export type MockCharacter = {
   id: string
@@ -94,6 +95,28 @@ export type MockCaveState = {
   finishNowCost: number
 }
 
+export type MockCultivationState = {
+  idleMinutes: number
+  idleCapMinutes: number
+  claimableCultivation: number
+  baseCultivationPerHour: number
+  equippedMethodName: string | null
+  methodMultiplier: number
+  breakthroughBaseRate: number
+  rootBonus: number
+  luckBonus: number
+  pillBonus: number
+  methodBonus: number
+  pityBonus: number
+  finalRate: number
+  spiritStoneCost: number
+  pity: number
+  rootEssence: number
+  rootUpgradeCost: number
+  nextRootQuality: string | null
+  breakthroughOutcome: 'success' | 'failure'
+}
+
 export type MockGameState = {
   scenario: MockScenario
   notice: string | null
@@ -106,6 +129,7 @@ export type MockGameState = {
   skills: MockSkill[]
   pills: MockPill[]
   cave: MockCaveState
+  cultivationState: MockCultivationState
   isLoading: boolean
 }
 
@@ -246,6 +270,27 @@ const baseGameState: MockGameState = {
     minutesToFull: 12,
     finishNowCost: 480,
   },
+  cultivationState: {
+    idleMinutes: 367,
+    idleCapMinutes: 480,
+    claimableCultivation: 1280,
+    baseCultivationPerHour: 100,
+    equippedMethodName: '太虛引氣訣',
+    methodMultiplier: 1.42,
+    breakthroughBaseRate: 45,
+    rootBonus: 18,
+    luckBonus: 4,
+    pillBonus: 8,
+    methodBonus: 6,
+    pityBonus: 5,
+    finalRate: 86,
+    spiritStoneCost: 2000,
+    pity: 1,
+    rootEssence: 86,
+    rootUpgradeCost: 60,
+    nextRootQuality: '天品',
+    breakthroughOutcome: 'success',
+  },
   isLoading: false,
 }
 
@@ -263,10 +308,25 @@ const createScenarioFixture = (
 export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
   default: createScenarioFixture('default', {}),
   success: createScenarioFixture('success', {
-    notice: '修為領取成功，獲得 1,280 點修為。',
+    notice: '修為已達圓滿，可展示突破成功結果。',
+    character: {
+      ...baseGameState.character,
+      cultivation: baseGameState.character.cultivationTarget,
+    },
   }),
   failure: createScenarioFixture('failure', {
     notice: '突破失敗，保底進度已提升。',
+    character: {
+      ...baseGameState.character,
+      cultivation: baseGameState.character.cultivationTarget,
+    },
+    cultivationState: {
+      ...baseGameState.cultivationState,
+      breakthroughOutcome: 'failure',
+      pity: 2,
+      pityBonus: 10,
+      finalRate: 91,
+    },
     battle: {
       id: 'battle-002',
       result: 'defeat',
@@ -303,6 +363,11 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       cultivation: 36000,
       cultivationTarget: 36000,
     },
+    cultivationState: {
+      ...baseGameState.cultivationState,
+      claimableCultivation: 0,
+      nextRootQuality: null,
+    },
   }),
   longName: createScenarioFixture('longName', {
     notice: '長名稱與大數值情境，用於檢查角色列與導覽穩定性。',
@@ -324,6 +389,16 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
   sessionExpired: createScenarioFixture('sessionExpired', {
     notice: '登入狀態已失效，請返回登入頁重新驗證。',
   }),
+  noMethod: createScenarioFixture('noMethod', {
+    notice: '目前未裝備功法，修煉倍率以 1 倍計算。',
+    cultivationState: {
+      ...baseGameState.cultivationState,
+      equippedMethodName: null,
+      methodMultiplier: 1,
+      methodBonus: 0,
+      finalRate: 80,
+    },
+  }),
 }
 
 export const mockScenarioOptions: Array<{
@@ -341,6 +416,7 @@ export const mockScenarioOptions: Array<{
   { value: 'longName', label: '長名稱與大數值', tone: 'gold' },
   { value: 'disconnected', label: '連線中斷', tone: 'cinnabar' },
   { value: 'sessionExpired', label: 'Session 失效', tone: 'cinnabar' },
+  { value: 'noMethod', label: '未裝備功法', tone: 'neutral' },
 ]
 
 export const getMockGameState = (scenario: MockScenario): MockGameState => {

@@ -15,6 +15,7 @@ import {
   DesktopNavigation,
   MobileNavigation,
 } from './game-shell.navigation'
+import { CultivationMock } from './cultivation/CultivationMock'
 
 const compactNumberFormatter = new Intl.NumberFormat('zh-TW', {
   notation: 'compact',
@@ -291,11 +292,15 @@ export function gameShellViewController({
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(17rem,0.8fr)]">
-            <Panel
-              eyebrow={`${activeItem.nextTask} PLACEHOLDER`}
-              title={activeItem.label}
-            >
-              {gameState.isLoading ? (
+            {activeItem.path === '/game/cultivation' &&
+            !gameState.isLoading ? (
+              <CultivationMock />
+            ) : (
+              <Panel
+                eyebrow={`${activeItem.nextTask} PLACEHOLDER`}
+                title={activeItem.label}
+              >
+                {gameState.isLoading ? (
                 <div
                   aria-label="GameState 載入中"
                   className="grid min-h-64 place-items-center rounded-md border border-dashed border-white/12 bg-black/15"
@@ -334,8 +339,9 @@ export function gameShellViewController({
                     </div>
                   </div>
                 </div>
-              )}
-            </Panel>
+                )}
+              </Panel>
+            )}
 
             <Panel eyebrow="PERSISTENT STATE" title="框架狀態">
               <dl className="grid gap-3 text-sm">
