@@ -1,5 +1,5 @@
 import type { ExplorationData } from '@/domain/repository'
-import type { MockBattle } from '@/data/gameMock'
+import type { GameViewBattle } from '../game-view-state'
 
 /** 探索結果層可辨識的正式畫面模型。 */
 export interface ExplorationResultView {
@@ -8,7 +8,7 @@ export interface ExplorationResultView {
   /** 結果頁標題。 */
   title: string
   /** 戰鬥事件的畫面資料；非戰鬥事件為 null。 */
-  battle: MockBattle | null
+  battle: GameViewBattle | null
   /** 非戰鬥事件或未知事件的安全說明。 */
   eventMessage: string
   /** 後端建立的裝備 instance ID。 */

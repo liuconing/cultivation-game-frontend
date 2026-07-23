@@ -29,7 +29,7 @@ export function DesktopNavigation({
           XIA-39
         </p>
         <p className="mt-2 font-serif text-2xl text-neutral-100">問仙</p>
-        <p className="mt-1 text-xs text-neutral-600">記憶體遊戲框架</p>
+        <p className="mt-1 text-xs text-neutral-600">修仙放置遊戲</p>
       </div>
 
       <nav aria-label="遊戲主導覽" className="mt-5 grid gap-2">
@@ -44,7 +44,7 @@ export function DesktopNavigation({
             <span className="min-w-0">
               <span className="block truncate font-medium">{item.label}</span>
               <span className="block truncate text-[0.66rem] text-neutral-600 group-hover:text-neutral-500">
-                {item.nextTask}
+                {item.description}
               </span>
             </span>
           </NavLink>
@@ -52,7 +52,7 @@ export function DesktopNavigation({
       </nav>
 
       <div className="mt-auto rounded-md border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-neutral-600">
-        UI Mock 僅操作 Zustand 記憶體資料，不會呼叫正式 API。
+        遊戲進度由後端保存；操作完成後會自動同步最新狀態。
       </div>
     </aside>
   )

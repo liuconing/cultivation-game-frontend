@@ -10,6 +10,7 @@ import { Button, Panel, StatusBadge } from '@/components'
 import { exploreUsecase } from '@/domain'
 import type { ExplorationData } from '@/domain/repository'
 import { useMutation } from '@/hook'
+import { getApiClientError } from '@/lib/axios'
 import { uuid } from '@/lib/uuid'
 import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
@@ -41,8 +42,8 @@ const mapStatusCopy = {
   },
 }
 
-/** UI-06 地圖、探索提交與全螢幕結果的純記憶體 Mock。 */
-export function ExploreMock() {
+/** 地圖選擇、探索提交與戰鬥結果的正式 API 頁面。 */
+export function ExplorePage() {
   const navigate = useNavigate()
   const { gameState, reloadGameState } = useGameRuntime()
   const [selectedMapId, setSelectedMapId] = useState(
@@ -51,6 +52,9 @@ export function ExploreMock() {
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [explorationResult, setExplorationResult] =
     useState<ExplorationData | null>(null)
+  const [exploreError, setExploreError] = useState<string | null>(
+    null,
+  )
   const resultRef = useRef<HTMLDivElement>(null)
   const exploreTriggerRef = useRef<HTMLElement>(null)
   const exploreKeyRef = useRef<string | null>(null)
@@ -75,11 +79,16 @@ export function ExploreMock() {
     ({ mapId, idempotencyKey }: ExploreMutationParams) =>
       exploreUsecase({ mapId }, { idempotencyKey }),
     {
+      enableGlobalError: false,
       onSuccess: async (response) => {
         exploreKeyRef.current = null
+        setExploreError(null)
         setExplorationResult(response.data)
         await reloadGameState()
         setIsResultOpen(true)
+      },
+      onError: (error) => {
+        setExploreError(getApiClientError(error).message)
       },
     },
   )
@@ -156,6 +165,7 @@ export function ExploreMock() {
       uuid,
     )
     exploreKeyRef.current = idempotencyKey
+    setExploreError(null)
     exploreMutation.mutate({
       mapId: selectedMap.id,
       idempotencyKey,
@@ -170,7 +180,7 @@ export function ExploreMock() {
   return (
     <>
       <div className="grid gap-4">
-        <Panel eyebrow="UI-06・EXPLORE" title="探索地圖">
+        <Panel eyebrow="EXPLORE" title="探索地圖">
           <div className="grid gap-3">
             {gameState.maps.map((map) => {
               const status = mapStatusCopy[map.status]
@@ -222,6 +232,11 @@ export function ExploreMock() {
                 </button>
               )
             })}
+            {gameState.maps.length === 0 ? (
+              <p className="rounded-md border border-dashed border-white/12 px-4 py-12 text-center text-sm text-neutral-500">
+                目前沒有可探索的 V1 地圖。
+              </p>
+            ) : null}
           </div>
         </Panel>
 
@@ -253,8 +268,8 @@ export function ExploreMock() {
                   className="mt-3 text-xs leading-6 text-cinnabar-100"
                   role="alert"
                 >
-                  目前生命或靈力偏低；Mock 仍允許提交，最終結果由
-                  fixture 決定。
+                  目前生命或靈力偏低；探索仍可提交，戰鬥與獎勵由
+                  後端結算。
                 </p>
               ) : null}
             </div>
@@ -268,6 +283,11 @@ export function ExploreMock() {
               {selectedMap?.status === 'locked' ? '尚未解鎖' : '開始探索'}
             </Button>
           </div>
+          {exploreError ? (
+            <p className="mt-4 text-sm text-cinnabar-100" role="alert">
+              {exploreError}
+            </p>
+          ) : null}
         </Panel>
       </div>
 

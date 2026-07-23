@@ -6,8 +6,9 @@ import {
   type RefObject,
 } from 'react'
 import { useLocation } from 'react-router'
+import { getApiClientError } from '@/lib/axios'
 import { useSession } from '@/session'
-import type { GameViewState } from './game-state.adapter'
+import type { GameViewState } from './game-view-state'
 import { useGameRuntime } from './use-game-runtime'
 
 export type GameRoute =
@@ -22,7 +23,6 @@ export interface GameNavigationItem {
   shortLabel: string
   glyph: string
   description: string
-  nextTask: string
 }
 
 export interface GlobalIndicator {
@@ -38,7 +38,6 @@ export const gameNavigationItems: GameNavigationItem[] = [
     shortLabel: '修煉',
     glyph: '煉',
     description: '領取離線修為、突破境界並提升靈根品質。',
-    nextTask: 'FE-04',
   },
   {
     path: '/game/explore',
@@ -46,7 +45,6 @@ export const gameNavigationItems: GameNavigationItem[] = [
     shortLabel: '探索',
     glyph: '探',
     description: '選擇已解鎖地圖，進行探索並查看戰鬥結果。',
-    nextTask: 'FE-06',
   },
   {
     path: '/game/loadout',
@@ -54,7 +52,6 @@ export const gameNavigationItems: GameNavigationItem[] = [
     shortLabel: '整備',
     glyph: '裝',
     description: '管理背包、裝備、功法、技能與丹藥。',
-    nextTask: 'FE-08',
   },
   {
     path: '/game/cave',
@@ -62,7 +59,6 @@ export const gameNavigationItems: GameNavigationItem[] = [
     shortLabel: '洞府',
     glyph: '府',
     description: '查看自然恢復進度，或使用靈石立即完成休養。',
-    nextTask: 'FE-05',
   },
 ]
 
@@ -78,19 +74,19 @@ const getGlobalIndicators = (
   const { character } = gameState
   const indicators: GlobalIndicator[] = []
 
-  indicators.push(
-    character.cultivation >= character.cultivationTarget
-      ? {
-          id: 'breakthrough',
-          label: '可突破',
-          tone: 'gold',
-        }
-      : {
-          id: 'claim',
-          label: '可領取修為',
-          tone: 'jade',
-        },
-  )
+  if (character.cultivation >= character.cultivationTarget) {
+    indicators.push({
+      id: 'breakthrough',
+      label: '可突破',
+      tone: 'gold',
+    })
+  } else if (gameState.cultivationState.claimableCultivation > 0) {
+    indicators.push({
+      id: 'claim',
+      label: '可領取修為',
+      tone: 'jade',
+    })
+  }
 
   if (character.health / character.maxHealth < 0.3) {
     indicators.push({
@@ -119,6 +115,10 @@ export interface IGameShellViewModel {
   isCharacterDrawerOpen: boolean
   isAccountMenuOpen: boolean
   shellNotice: string | null
+  /** 框架層手動同步失敗時的局部錯誤。 */
+  shellError: string | null
+  /** V1 物品 catalog 是否載入失敗。 */
+  hasCatalogError: boolean
   /** 目前登入帳號的 Email。 */
   accountLabel: string
   accountButtonRef: RefObject<HTMLButtonElement | null>
@@ -129,6 +129,8 @@ export interface IGameShellViewModel {
   handleToggleAccountMenu: () => void
   handleCloseAccountMenu: (restoreFocus?: boolean) => void
   handleReloadState: () => void
+  /** 重新載入物品 catalog。 */
+  handleReloadCatalog: () => void
   handleLogout: () => void
 }
 
@@ -136,11 +138,17 @@ export interface IGameShellViewModel {
 export function useGameShellViewModel(): IGameShellViewModel {
   const location = useLocation()
   const { user, logout } = useSession()
-  const { gameState, reloadGameState } = useGameRuntime()
+  const {
+    gameState,
+    catalogError,
+    reloadCatalog,
+    reloadGameState,
+  } = useGameRuntime()
   const [isCharacterDrawerOpen, setIsCharacterDrawerOpen] =
     useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [shellNotice, setShellNotice] = useState<string | null>(null)
+  const [shellError, setShellError] = useState<string | null>(null)
   const accountButtonRef = useRef<HTMLButtonElement>(null)
   const accountMenuRef = useRef<HTMLDivElement>(null)
   const accountFirstItemRef = useRef<HTMLButtonElement>(null)
@@ -215,9 +223,23 @@ export function useGameShellViewModel(): IGameShellViewModel {
   /** 重新向後端同步角色與 GameState。 */
   const handleReloadState = (): void => {
     setShellNotice('正在重新同步遊戲狀態…')
+    setShellError(null)
     handleCloseAccountMenu()
-    void reloadGameState().then(() => {
-      setShellNotice('遊戲狀態已同步。')
+    void Promise.all([reloadGameState(), reloadCatalog()])
+      .then(() => {
+        setShellNotice('遊戲狀態已同步。')
+      })
+      .catch((error: unknown) => {
+        setShellNotice(null)
+        setShellError(getApiClientError(error).message)
+      })
+  }
+
+  /** 從 catalog 區塊重新載入 V1 靜態資料。 */
+  const handleReloadCatalog = (): void => {
+    setShellError(null)
+    void reloadCatalog().catch((error: unknown) => {
+      setShellError(getApiClientError(error).message)
     })
   }
 
@@ -235,6 +257,8 @@ export function useGameShellViewModel(): IGameShellViewModel {
     isCharacterDrawerOpen,
     isAccountMenuOpen,
     shellNotice,
+    shellError,
+    hasCatalogError: Boolean(catalogError),
     accountLabel: user?.email ?? '未登入帳號',
     accountButtonRef,
     accountMenuRef,
@@ -244,6 +268,7 @@ export function useGameShellViewModel(): IGameShellViewModel {
     handleToggleAccountMenu,
     handleCloseAccountMenu,
     handleReloadState,
+    handleReloadCatalog,
     handleLogout,
   }
 }

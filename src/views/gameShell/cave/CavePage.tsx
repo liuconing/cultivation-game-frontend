@@ -23,12 +23,13 @@ interface CompleteRestMutationParams {
 const secondsToMinutes = (seconds: number): number =>
   Math.max(0, Math.ceil(seconds / 60))
 
-/** FE-05 洞府自然恢復與立即完成的正式 API 畫面。 */
-export function CaveMock() {
+/** 洞府自然休養與立即完成的正式 API 頁面。 */
+export function CavePage() {
   const { gameState, reloadGameState } = useGameRuntime()
   const { character, cave } = gameState
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [errorNotice, setErrorNotice] = useState<string | null>(null)
   const countdownSource = cave.minutesToFull
   const [countdown, setCountdown] = useState({
     source: countdownSource,
@@ -67,13 +68,14 @@ export function CaveMock() {
       onSuccess: async (response) => {
         completeKeyRef.current = null
         setIsConfirmOpen(false)
+        setErrorNotice(null)
         setNotice(
           `休養完成，已消耗 ${response.data.cost.toLocaleString()} 靈石。`,
         )
         await reloadGameState()
       },
       onError: (error) => {
-        setNotice(getApiClientError(error).message)
+        setErrorNotice(getApiClientError(error).message)
       },
     },
   )
@@ -103,13 +105,14 @@ export function CaveMock() {
     )
     completeKeyRef.current = idempotencyKey
     setNotice(null)
+    setErrorNotice(null)
     completeMutation.mutate({ idempotencyKey })
   }
 
   return (
     <>
       <div className="grid gap-4">
-        <Panel eyebrow="FE-05・CAVE RECOVERY" title="洞府休養">
+        <Panel eyebrow="CAVE RECOVERY" title="洞府休養">
           <div className="flex flex-wrap gap-2">
             <StatusBadge tone={isFull ? 'jade' : 'neutral'}>
               {isFull ? '生命與靈力已回滿' : '自然恢復中'}
@@ -158,6 +161,14 @@ export function CaveMock() {
                   role="status"
                 >
                   {notice}
+                </p>
+              ) : null}
+              {errorNotice ? (
+                <p
+                  className="mt-3 text-sm text-cinnabar-100"
+                  role="alert"
+                >
+                  {errorNotice}
                 </p>
               ) : null}
             </div>

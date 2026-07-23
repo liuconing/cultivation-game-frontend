@@ -3,11 +3,11 @@ import type {
   EquipSkillsParams,
   PassiveSkillId,
 } from '@/domain/repository'
-import type { MockSkill } from '@/data/gameMock'
+import type { GameViewSkill } from '../game-view-state'
 
 /** 依欲更換的技能建立同時包含兩個槽位的後端請求。 */
 export const createEquipSkillsParams = (
-  skills: MockSkill[],
+  skills: GameViewSkill[],
   selectedSkillId: string,
 ): EquipSkillsParams | null => {
   const selected = skills.find(

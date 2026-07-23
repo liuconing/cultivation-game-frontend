@@ -7,10 +7,6 @@ import {
   StatusBadge,
   Tabs,
 } from '@/components'
-import type {
-  MockEquipment,
-  MockInventoryItem,
-} from '@/data/gameMock'
 import {
   compareEquipmentUsecase,
   equipCultivationMethodUsecase,
@@ -32,6 +28,10 @@ import { useFetch, useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { uuid } from '@/lib/uuid'
 import { getOrCreateIdempotencyKey } from '../game-mutation'
+import type {
+  GameViewEquipment,
+  GameViewInventoryItem,
+} from '../game-view-state'
 import { useGameRuntime } from '../use-game-runtime'
 import { createEquipSkillsParams } from './loadout-actions'
 
@@ -84,7 +84,7 @@ interface UsePillMutationParams {
 }
 
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
-type InventoryFilter = 'all' | MockInventoryItem['type']
+type InventoryFilter = 'all' | GameViewInventoryItem['type']
 type ConfirmAction =
   | { kind: 'sell'; equipmentId: string; salePrice: number }
   | { kind: 'usePill'; templateId: string }
@@ -125,8 +125,8 @@ function ItemSummary({
   )
 }
 
-/** UI-07 五分頁整備、物品抽屜與丹藥商店的記憶體 Mock。 */
-export function LoadoutMock() {
+/** 背包、裝備、功法、技能與丹藥的正式 API 頁面。 */
+export function LoadoutPage() {
   const { gameState, reloadGameState } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
   const [inventoryFilter, setInventoryFilter] =
@@ -138,10 +138,14 @@ export function LoadoutMock() {
   const [confirmAction, setConfirmAction] =
     useState<ConfirmAction>(null)
   const [skillNotice, setSkillNotice] = useState<string | null>(null)
+  const [skillError, setSkillError] = useState<string | null>(null)
   const [skillIdempotencyKey, setSkillIdempotencyKey] = useState<
     string | null
   >(null)
   const [equipmentNotice, setEquipmentNotice] = useState<
+    string | null
+  >(null)
+  const [equipmentError, setEquipmentError] = useState<
     string | null
   >(null)
   const [equipmentIdempotencyKey, setEquipmentIdempotencyKey] =
@@ -231,11 +235,12 @@ export function LoadoutMock() {
       enableGlobalError: false,
       onSuccess: async () => {
         setSkillIdempotencyKey(null)
+        setSkillError(null)
         setSkillNotice('技能配置已同步。')
         await reloadGameState()
       },
       onError: (error) => {
-        setSkillNotice(getApiClientError(error).message)
+        setSkillError(getApiClientError(error).message)
       },
     },
   )
@@ -250,7 +255,7 @@ export function LoadoutMock() {
       templateId,
     )
     if (!values) {
-      setSkillNotice('主動與被動技能各需至少持有一項。')
+      setSkillError('主動與被動技能各需至少持有一項。')
       return
     }
     const idempotencyKey = getOrCreateIdempotencyKey(
@@ -259,6 +264,7 @@ export function LoadoutMock() {
     )
     setSkillIdempotencyKey(idempotencyKey)
     setSkillNotice(null)
+    setSkillError(null)
     equipSkillsMutation.mutate({ values, idempotencyKey })
   }
 
@@ -283,11 +289,12 @@ export function LoadoutMock() {
       onSuccess: async () => {
         setEquipmentIdempotencyKey(null)
         setSelectedEquipmentId(null)
+        setEquipmentError(null)
         setEquipmentNotice('裝備已穿戴並同步派生屬性。')
         await reloadGameState()
       },
       onError: (error) => {
-        setEquipmentNotice(getApiClientError(error).message)
+        setEquipmentError(getApiClientError(error).message)
       },
     },
   )
@@ -300,13 +307,14 @@ export function LoadoutMock() {
         setSellIdempotencyKey(null)
         setConfirmAction(null)
         setSelectedEquipmentId(null)
+        setEquipmentError(null)
         setEquipmentNotice(
           `已出售裝備並取得 ${response.data.salePrice.toLocaleString()} 靈石。`,
         )
         await reloadGameState()
       },
       onError: (error) => {
-        setEquipmentNotice(getApiClientError(error).message)
+        setEquipmentError(getApiClientError(error).message)
       },
     },
   )
@@ -385,7 +393,7 @@ export function LoadoutMock() {
     usePillMutation.isPending,
   ])
 
-  const handleEquipEquipment = (equipment: MockEquipment) => {
+  const handleEquipEquipment = (equipment: GameViewEquipment) => {
     if (equipment.equipped || equipEquipmentMutation.isPending) {
       return
     }
@@ -395,6 +403,7 @@ export function LoadoutMock() {
     )
     setEquipmentIdempotencyKey(idempotencyKey)
     setEquipmentNotice(null)
+    setEquipmentError(null)
     equipEquipmentMutation.mutate({
       values: { instanceId: equipment.id },
       idempotencyKey,
@@ -416,6 +425,7 @@ export function LoadoutMock() {
         uuid,
       )
       setSellIdempotencyKey(idempotencyKey)
+      setEquipmentError(null)
       sellEquipmentMutation.mutate({
         values: { instanceId: confirmAction.equipmentId },
         idempotencyKey,
@@ -513,6 +523,11 @@ export function LoadoutMock() {
             role="status"
           >
             {equipmentNotice}
+          </p>
+        ) : null}
+        {equipmentError ? (
+          <p className="mb-3 text-sm text-cinnabar-100" role="alert">
+            {equipmentError}
           </p>
         ) : null}
         {gameState.equipment.length > 0 ? (
@@ -649,6 +664,11 @@ export function LoadoutMock() {
                 {skillNotice}
               </p>
             ) : null}
+            {skillError ? (
+              <p className="mb-3 text-sm text-cinnabar-100" role="alert">
+                {skillError}
+              </p>
+            ) : null}
             <div className="grid gap-2">
               {gameState.skills
                 .filter((skill) => skill.kind === kind)
@@ -688,6 +708,13 @@ export function LoadoutMock() {
                   </div>
                 ))}
             </div>
+            {gameState.skills.every(
+              (skill) => skill.kind !== kind,
+            ) ? (
+              <p className="text-sm text-neutral-500">
+                尚未學會此類型技能。
+              </p>
+            ) : null}
           </Panel>
         ))}
       </div>
@@ -905,6 +932,14 @@ export function LoadoutMock() {
                 {selectedEquipment.equipped ? '已穿戴' : '穿戴替換'}
               </Button>
             </div>
+            {equipmentError ? (
+              <p
+                className="mt-3 text-sm text-cinnabar-100"
+                role="alert"
+              >
+                {equipmentError}
+              </p>
+            ) : null}
           </>
         ) : null}
       </Drawer>
@@ -1037,6 +1072,14 @@ export function LoadoutMock() {
             confirmEquipment.quality === '極品' ? (
               <p className="mt-3 rounded border border-cinnabar-400/25 bg-cinnabar-400/[0.07] p-3 text-xs text-cinnabar-100">
                 這是高品質裝備，出售後無法復原。
+              </p>
+            ) : null}
+            {equipmentError ? (
+              <p
+                className="mt-3 text-sm text-cinnabar-100"
+                role="alert"
+              >
+                {equipmentError}
               </p>
             ) : null}
           </>

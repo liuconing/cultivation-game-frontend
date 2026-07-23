@@ -3,35 +3,18 @@ import type {
   ItemCatalogResponse,
 } from '@/domain/repository'
 import type {
-  MockCultivationMethod,
-  MockEquipment,
-  MockGameState,
-  MockInventoryItem,
-  MockMap,
-  MockPill,
-  MockSkill,
-} from '@/data/gameMock'
+  GameViewCultivationMethod,
+  GameViewEquipment,
+  GameViewInventoryItem,
+  GameViewPill,
+  GameViewSkill,
+  GameViewState,
+} from './game-view-state'
 
-/** 正式探索頁使用的地圖畫面模型。 */
-export interface GameViewMap extends MockMap {
-  /** 角色與建議境界之間的階級差。 */
-  realmDifference: number
-  /** 後端計算的挑戰獎勵倍率。 */
-  challengeRewardMultiplier: number
-  /** 後端計算的掉落倍率。 */
-  dropMultiplier: number
-}
-
-/** 正式遊戲畫面使用的資料模型，不包含 Mock 情境切換欄位。 */
-export type GameViewState = Omit<
-  MockGameState,
-  'scenario' | 'maps'
-> & {
-  /** 後端提供的地圖狀態與倍率。 */
-  maps: GameViewMap[]
-}
-
-const genderLabels: Record<string, MockGameState['character']['gender']> = {
+const genderLabels: Record<
+  string,
+  GameViewState['character']['gender']
+> = {
   male: '男',
   female: '女',
   none: '不公開',
@@ -92,7 +75,7 @@ const rootQualityLabels: Record<string, string> = {
 
 const itemTypeByCategory: Record<
   ItemCatalogResponse['category'],
-  MockInventoryItem['type']
+  GameViewInventoryItem['type']
 > = {
   accessories: 'equipment',
   chest_armor: 'equipment',
@@ -106,7 +89,7 @@ const itemTypeByCategory: Record<
 
 const qualityLabels: Record<
   ItemCatalogResponse['quality'],
-  MockInventoryItem['quality']
+  GameViewInventoryItem['quality']
 > = {
   fan: '凡品',
   huang: '良品',
@@ -118,7 +101,7 @@ const qualityLabels: Record<
 
 const equipmentSlotLabels: Record<
   NonNullable<ItemCatalogResponse['slot']>,
-  MockEquipment['slot']
+  GameViewEquipment['slot']
 > = {
   accessory: '飾品',
   chest: '胸甲',
@@ -152,7 +135,7 @@ export const createGameViewState = (
       (instanceId): instanceId is string => instanceId !== null,
     ),
   )
-  const inventory: MockInventoryItem[] = gameState.inventory.map(
+  const inventory: GameViewInventoryItem[] = gameState.inventory.map(
     (entry) => {
       const item = catalog.get(entry.templateId)
       return {
@@ -165,7 +148,7 @@ export const createGameViewState = (
       }
     },
   )
-  const equipment: MockEquipment[] = gameState.equipmentInstances.map(
+  const equipment: GameViewEquipment[] = gameState.equipmentInstances.map(
     (instance) => {
       const item = catalog.get(instance.templateId)
       return {
@@ -184,7 +167,7 @@ export const createGameViewState = (
       }
     },
   )
-  const cultivationMethods: MockCultivationMethod[] =
+  const cultivationMethods: GameViewCultivationMethod[] =
     gameState.inventory.flatMap((entry) => {
       const item = catalog.get(entry.templateId)
       if (!item || item.category !== 'cultivation_methods') {
@@ -216,7 +199,7 @@ export const createGameViewState = (
         },
       ]
     })
-  const skills: MockSkill[] = gameState.skills
+  const skills: GameViewSkill[] = gameState.skills
     .filter((skill) => skill.learned)
     .map((skill) => ({
       templateId: skill.id,
@@ -226,7 +209,7 @@ export const createGameViewState = (
       description: skill.description,
       equipped: skill.equipped,
     }))
-  const pills: MockPill[] = gameState.inventory.flatMap((entry) => {
+  const pills: GameViewPill[] = gameState.inventory.flatMap((entry) => {
     const item = catalog.get(entry.templateId)
     if (!item || item.category !== 'pills') {
       return []
@@ -244,7 +227,6 @@ export const createGameViewState = (
   })
 
   return {
-    notice: null,
     character: {
       id: gameState.character.id,
       name: gameState.character.name,
@@ -289,7 +271,6 @@ export const createGameViewState = (
       challengeRewardMultiplier: map.challengeRewardMultiplier,
       dropMultiplier: map.dropMultiplier,
     })),
-    battle: null,
     inventory,
     equipment,
     cultivationMethods,
@@ -319,14 +300,6 @@ export const createGameViewState = (
       methodMultiplier:
         cultivationMethods.find((method) => method.equipped)
           ?.cultivationMultiplier ?? 1,
-      breakthroughBaseRate: 0,
-      rootBonus: 0,
-      luckBonus: 0,
-      pillBonus: 0,
-      methodBonus: 0,
-      pityBonus: 0,
-      finalRate: 0,
-      spiritStoneCost: 0,
       pity: gameState.character.breakthroughPity,
       rootEssence: gameState.character.spiritualRootEssence,
       rootUpgradeCost:
@@ -342,7 +315,6 @@ export const createGameViewState = (
         gameState.spiritualRootUpgradePreview.canUpgrade,
       rootUpgradeUnavailableReason:
         gameState.spiritualRootUpgradePreview.unavailableReason,
-      breakthroughOutcome: 'success',
     },
     isLoading: false,
   }

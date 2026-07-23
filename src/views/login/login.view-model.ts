@@ -12,6 +12,7 @@ import {
 import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useAuthStore } from '@/stores'
+import { submitAuthFlow } from './auth-submit-flow'
 
 /** 登入與註冊 ViewController 需要的狀態與操作。 */
 export interface ILoginViewModel {
@@ -178,10 +179,12 @@ export function useLoginViewModel(): ILoginViewModel {
     })
   }
 
-  const { mutate: registerMutation, isPending: isRegisterPending } = useMutation(registerUserUsecase, {
+  const registerMutation = useMutation(registerUserUsecase, {
+    enableGlobalError: false,
     onError: handleAuthError,
   })
-  const { mutate: loginMutation, isPending: isLoginPending } = useMutation(loginUserUsecase, {
+  const loginMutation = useMutation(loginUserUsecase, {
+    enableGlobalError: false,
     onSuccess: (response) => {
       setAuth(response.data)
       navigate(getReturnPath(location.state), { replace: true })
@@ -198,7 +201,8 @@ export function useLoginViewModel(): ILoginViewModel {
       handleAuthError(error)
     },
   })
-  const isSubmitting = isRegisterPending || isLoginPending
+  const isSubmitting =
+    registerMutation.isPending || loginMutation.isPending
 
   /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
   const submitAuth = async (): Promise<void> => {
@@ -208,11 +212,10 @@ export function useLoginViewModel(): ILoginViewModel {
         password: values.password,
       }
 
-      if (mode === 'register') {
-        registerMutation(input)
-      }
-
-      loginMutation(input)
+      await submitAuthFlow(mode, input, {
+        register: registerMutation.mutateAsync,
+        login: loginMutation.mutateAsync,
+      })
     } catch {
       return
     }

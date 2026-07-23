@@ -51,14 +51,15 @@ const formatDuration = (minutes: number) => {
   return `${hours} 小時 ${remainingMinutes} 分`
 }
 
-/** UI-05 修煉、突破與靈根成長的純記憶體互動 Mock。 */
-export function CultivationMock() {
+/** 修煉、突破與靈根成長的正式 API 頁面。 */
+export function CultivationPage() {
   const { gameState, reloadGameState } = useGameRuntime()
   const [modal, setModal] = useState<CultivationModal>(null)
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
     'success' | 'failure' | null
   >(null)
   const [claimNotice, setClaimNotice] = useState<string | null>(null)
+  const [claimError, setClaimError] = useState<string | null>(null)
   const [breakthroughNotice, setBreakthroughNotice] = useState<
     string | null
   >(null)
@@ -93,12 +94,17 @@ export function CultivationMock() {
     ({ idempotencyKey }: ClaimCultivationMutationParams) =>
       claimCultivationUsecase({ idempotencyKey }),
     {
+      enableGlobalError: false,
       onSuccess: async (response) => {
         claimKeyRef.current = null
+        setClaimError(null)
         setClaimNotice(
           `已領取 ${response.data.awardedCultivation.toLocaleString()} 修為。`,
         )
         await reloadGameState()
+      },
+      onError: (error) => {
+        setClaimError(getApiClientError(error).message)
       },
     },
   )
@@ -200,6 +206,7 @@ export function CultivationMock() {
     )
     claimKeyRef.current = idempotencyKey
     setClaimNotice(null)
+    setClaimError(null)
     claimMutation.mutate({ idempotencyKey })
   }
 
@@ -244,7 +251,7 @@ export function CultivationMock() {
   return (
     <>
       <div className="grid gap-4">
-        <Panel eyebrow="UI-05・IDLE CULTIVATION" title="放置修煉">
+        <Panel eyebrow="IDLE CULTIVATION" title="放置修煉">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -274,6 +281,14 @@ export function CultivationMock() {
                   role="status"
                 >
                   {claimNotice}
+                </p>
+              ) : null}
+              {claimError ? (
+                <p
+                  className="mt-3 text-sm text-cinnabar-100"
+                  role="alert"
+                >
+                  {claimError}
                 </p>
               ) : null}
             </div>

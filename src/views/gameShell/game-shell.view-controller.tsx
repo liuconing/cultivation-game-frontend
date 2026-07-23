@@ -14,10 +14,10 @@ import {
   DesktopNavigation,
   MobileNavigation,
 } from './game-shell.navigation'
-import { CultivationMock } from './cultivation/CultivationMock'
-import { ExploreMock } from './explore/ExploreMock'
-import { LoadoutMock } from './loadout/LoadoutMock'
-import { CaveMock } from './cave/CaveMock'
+import { CavePage } from './cave/CavePage'
+import { CultivationPage } from './cultivation/CultivationPage'
+import { ExplorePage } from './explore/ExplorePage'
+import { LoadoutPage } from './loadout/LoadoutPage'
 
 const compactNumberFormatter = new Intl.NumberFormat('zh-TW', {
   notation: 'compact',
@@ -37,6 +37,8 @@ export function gameShellViewController({
   isCharacterDrawerOpen,
   isAccountMenuOpen,
   shellNotice,
+  shellError,
+  hasCatalogError,
   accountLabel,
   accountButtonRef,
   accountMenuRef,
@@ -45,6 +47,7 @@ export function gameShellViewController({
   handleCloseCharacterDrawer,
   handleToggleAccountMenu,
   handleReloadState,
+  handleReloadCatalog,
   handleLogout,
 }: IGameShellViewModel) {
   const { character } = gameState
@@ -220,10 +223,10 @@ export function gameShellViewController({
           <div className="mb-4 flex flex-col gap-3 rounded-lg border border-white/10 bg-ink-900/50 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <p className="text-[0.68rem] tracking-[0.18em] text-gold-200/65">
-                UI-04・XIA-39
+                GAME
               </p>
               <p className="truncate font-serif text-lg text-neutral-100">
-                {activeItem.label}主框架
+                {activeItem.label}
               </p>
             </div>
             <StatusBadge tone="jade">後端資料已同步</StatusBadge>
@@ -238,33 +241,48 @@ export function gameShellViewController({
               {shellNotice}
             </p>
           ) : null}
-
-          {gameState.notice ? (
+          {shellError ? (
             <p
-              aria-live="polite"
-              className="mb-4 rounded-md border border-gold-400/25 bg-gold-400/[0.07] px-4 py-3 text-sm text-gold-100"
-              role="status"
+              className="mb-4 rounded-md border border-cinnabar-400/25 bg-cinnabar-400/[0.08] px-4 py-3 text-sm text-cinnabar-100"
+              role="alert"
             >
-              {gameState.notice}
+              {shellError}
             </p>
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(17rem,0.8fr)]">
-            {activeItem.path === '/game/cultivation' &&
+            {hasCatalogError ? (
+              <Panel eyebrow="CATALOG ERROR" title="物品資料載入失敗">
+                <div className="grid min-h-64 place-items-center rounded-md border border-dashed border-cinnabar-400/25 bg-cinnabar-400/[0.05] p-5 text-center">
+                  <div>
+                    <p className="text-sm text-cinnabar-100" role="alert">
+                      無法載入 V1 物品資料，角色進度仍安全保留。
+                    </p>
+                    <Button
+                      className="mt-4"
+                      onClick={handleReloadCatalog}
+                      variant="secondary"
+                    >
+                      重新載入物品資料
+                    </Button>
+                  </div>
+                </div>
+              </Panel>
+            ) : activeItem.path === '/game/cultivation' &&
             !gameState.isLoading ? (
-              <CultivationMock />
+              <CultivationPage />
             ) : activeItem.path === '/game/explore' &&
               !gameState.isLoading ? (
-              <ExploreMock />
+              <ExplorePage />
             ) : activeItem.path === '/game/loadout' &&
               !gameState.isLoading ? (
-              <LoadoutMock />
+              <LoadoutPage />
             ) : activeItem.path === '/game/cave' &&
               !gameState.isLoading ? (
-              <CaveMock />
+              <CavePage />
             ) : (
               <Panel
-                eyebrow={`${activeItem.nextTask} PLACEHOLDER`}
+                eyebrow="PAGE STATUS"
                 title={activeItem.label}
               >
                 {gameState.isLoading ? (
@@ -294,14 +312,10 @@ export function gameShellViewController({
                     </span>
                     <div className="min-w-0">
                       <h2 className="font-serif text-xl text-neutral-100">
-                        {activeItem.label}頁面內容預留區
+                        {activeItem.label}資料暫時無法顯示
                       </h2>
                       <p className="mt-2 max-w-2xl text-sm leading-7 text-neutral-400">
                         {activeItem.description}
-                      </p>
-                      <p className="mt-5 text-xs leading-6 text-neutral-600">
-                        本張 task 只建立穩定的共用框架；正式互動將由
-                        {activeItem.nextTask} 分批完成。
                       </p>
                     </div>
                   </div>
@@ -310,18 +324,24 @@ export function gameShellViewController({
               </Panel>
             )}
 
-            <Panel eyebrow="PERSISTENT STATE" title="框架狀態">
+            <Panel eyebrow="CHARACTER RESOURCES" title="角色資源">
               <dl className="grid gap-3 text-sm">
                 <div className="rounded-md border border-white/10 bg-black/15 p-3">
-                  <dt className="text-xs text-neutral-600">目前路由</dt>
-                  <dd className="mt-1 truncate font-mono text-neutral-300">
-                    {activeItem.path}
+                  <dt className="text-xs text-neutral-600">靈根精華</dt>
+                  <dd className="mt-1 tabular-nums text-neutral-300">
+                    {gameState.cultivationState.rootEssence.toLocaleString()}
                   </dd>
                 </div>
                 <div className="rounded-md border border-white/10 bg-black/15 p-3">
-                  <dt className="text-xs text-neutral-600">資料來源</dt>
-                  <dd className="mt-1 text-neutral-300">
-                    Session GameState／TanStack Query
+                  <dt className="text-xs text-neutral-600">突破保底</dt>
+                  <dd className="mt-1 tabular-nums text-neutral-300">
+                    第 {gameState.cultivationState.pity} 次
+                  </dd>
+                </div>
+                <div className="rounded-md border border-white/10 bg-black/15 p-3">
+                  <dt className="text-xs text-neutral-600">背包項目</dt>
+                  <dd className="mt-1 tabular-nums text-neutral-300">
+                    {gameState.inventory.length.toLocaleString()} 類
                   </dd>
                 </div>
               </dl>
@@ -386,13 +406,19 @@ export function gameShellViewController({
           />
         </div>
 
-        <div className="mt-6 rounded-md border border-white/10 bg-white/[0.025] p-4">
-          <p className="text-xs tracking-[0.16em] text-gold-200/60">
-            UI-04 MOCK
-          </p>
-          <p className="mt-2 text-sm leading-6 text-neutral-500">
-            完整衍生屬性、突破保底與靈根精華會在後續頁面任務加入。
-          </p>
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <div className="rounded-md border border-white/10 bg-white/[0.025] p-4">
+            <p className="text-xs text-neutral-600">靈根精華</p>
+            <p className="mt-2 tabular-nums text-gold-100">
+              {gameState.cultivationState.rootEssence.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-md border border-white/10 bg-white/[0.025] p-4">
+            <p className="text-xs text-neutral-600">突破保底</p>
+            <p className="mt-2 tabular-nums text-jade-100">
+              第 {gameState.cultivationState.pity} 次
+            </p>
+          </div>
         </div>
       </Drawer>
     </div>
