@@ -97,6 +97,7 @@ export type MockPill = {
   templateId: string
   name: string
   effect: string
+  effectTiming: 'instant' | 'battle_buff' | 'breakthrough'
   price: number
   quantity: number
 }
@@ -347,6 +348,7 @@ const baseGameState: MockGameState = {
       templateId: 'pill_heal_01',
       name: '小還丹',
       effect: '恢復 25% 最大生命',
+      effectTiming: 'instant',
       price: 320,
       quantity: 6,
     },
@@ -354,6 +356,7 @@ const baseGameState: MockGameState = {
       templateId: 'pill_breakthrough_01',
       name: '凝元丹',
       effect: '本次突破成功率 +8%',
+      effectTiming: 'breakthrough',
       price: 1800,
       quantity: 1,
     },
@@ -361,6 +364,7 @@ const baseGameState: MockGameState = {
       templateId: 'pill_spirit_01',
       name: '回靈丹',
       effect: '恢復 30% 最大靈力',
+      effectTiming: 'instant',
       price: 420,
       quantity: 3,
     },
@@ -368,6 +372,7 @@ const baseGameState: MockGameState = {
       templateId: 'pill_cultivation_01',
       name: '聚氣丹',
       effect: '立即獲得 500 點修為',
+      effectTiming: 'instant',
       price: 960,
       quantity: 2,
     },

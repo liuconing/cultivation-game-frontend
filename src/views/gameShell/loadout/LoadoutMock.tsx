@@ -10,17 +10,21 @@ import {
 import type {
   MockEquipment,
   MockInventoryItem,
-  MockPill,
 } from '@/data/gameMock'
 import {
   compareEquipmentUsecase,
   equipEquipmentUsecase,
   equipSkillsUsecase,
+  getShopPillsUsecase,
+  purchasePillUsecase,
   sellEquipmentUsecase,
+  usePillUsecase as consumePillUsecase,
 } from '@/domain'
 import type {
   EquipSkillsParams,
   EquipmentInstanceParams,
+  PurchasePillParams,
+  UsePillParams,
 } from '@/domain/repository'
 import { useFetch, useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
@@ -50,6 +54,22 @@ interface SellEquipmentMutationParams {
   /** 要出售的裝備 instance。 */
   values: EquipmentInstanceParams
   /** 同一次出售與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 丹藥購買 mutation 使用的參數。 */
+interface PurchasePillMutationParams {
+  /** 後端允許的購買品項與數量。 */
+  values: PurchasePillParams
+  /** 同一次購買與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 丹藥使用 mutation 使用的參數。 */
+interface UsePillMutationParams {
+  /** 後端允許使用的丹藥模板。 */
+  values: UsePillParams
+  /** 同一次使用與網路重試共用的冪等鍵。 */
   idempotencyKey: string
 }
 
@@ -100,8 +120,6 @@ export function LoadoutMock() {
   const {
     gameState,
     equipCultivationMethod,
-    buyPill,
-    consumePill,
     reloadGameState,
   } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
@@ -113,7 +131,6 @@ export function LoadoutMock() {
   const [isShopOpen, setIsShopOpen] = useState(false)
   const [confirmAction, setConfirmAction] =
     useState<ConfirmAction>(null)
-  const [isBusy, setIsBusy] = useState(false)
   const [skillNotice, setSkillNotice] = useState<string | null>(null)
   const [skillIdempotencyKey, setSkillIdempotencyKey] = useState<
     string | null
@@ -126,6 +143,28 @@ export function LoadoutMock() {
   const [sellIdempotencyKey, setSellIdempotencyKey] = useState<
     string | null
   >(null)
+  const [pillNotice, setPillNotice] = useState<string | null>(null)
+  const [pillError, setPillError] = useState<string | null>(null)
+  const [purchaseIdempotency, setPurchaseIdempotency] = useState<{
+    /** 冪等鍵所屬的丹藥模板 ID。 */
+    templateId: string
+    /** 同一次購買與重試共用的冪等鍵。 */
+    key: string
+  } | null>(null)
+  const [usePillIdempotencyKey, setUsePillIdempotencyKey] = useState<
+    string | null
+  >(null)
+
+  const shopPillsQuery = useFetch(
+    getShopPillsUsecase,
+    undefined,
+    {
+      queryKey: ['pill-shop'],
+      enabled: isShopOpen,
+      retry: 1,
+      enableGlobalError: false,
+    },
+  )
 
   const equipSkillsMutation = useMutation(
     ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
@@ -213,6 +252,46 @@ export function LoadoutMock() {
       },
     },
   )
+  const purchasePillMutation = useMutation(
+    ({ values, idempotencyKey }: PurchasePillMutationParams) =>
+      purchasePillUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        setPurchaseIdempotency(null)
+        setPillError(null)
+        setPillNotice(
+          `已購買 ${response.data.quantityPurchased.toLocaleString()} 枚丹藥，支付 ${response.data.totalPrice.toLocaleString()} 靈石。`,
+        )
+        await Promise.all([
+          reloadGameState(),
+          shopPillsQuery.refetch(),
+        ])
+      },
+      onError: (error) => {
+        setPillError(getApiClientError(error).message)
+      },
+    },
+  )
+  const usePillMutation = useMutation(
+    ({ values, idempotencyKey }: UsePillMutationParams) =>
+      consumePillUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        setUsePillIdempotencyKey(null)
+        setConfirmAction(null)
+        setPillError(null)
+        setPillNotice(
+          `已使用丹藥；生命 ${response.data.before.currentHp} → ${response.data.after.currentHp}，靈力 ${response.data.before.currentMp} → ${response.data.after.currentMp}，修為 ${response.data.before.cultivation.toLocaleString()} → ${response.data.after.cultivation.toLocaleString()}。`,
+        )
+        await reloadGameState()
+      },
+      onError: (error) => {
+        setPillError(getApiClientError(error).message)
+      },
+    },
+  )
   const comparedEquipment = selectedEquipment
     ? gameState.equipment.find(
         (equipment) =>
@@ -237,10 +316,16 @@ export function LoadoutMock() {
     setIsShopOpen(false)
   }, [])
   const closeConfirm = useCallback(() => {
-    if (!isBusy && !sellEquipmentMutation.isPending) {
+    if (
+      !usePillMutation.isPending &&
+      !sellEquipmentMutation.isPending
+    ) {
       setConfirmAction(null)
     }
-  }, [isBusy, sellEquipmentMutation.isPending])
+  }, [
+    sellEquipmentMutation.isPending,
+    usePillMutation.isPending,
+  ])
 
   const handleEquipEquipment = (equipment: MockEquipment) => {
     if (equipment.equipped || equipEquipmentMutation.isPending) {
@@ -261,7 +346,7 @@ export function LoadoutMock() {
   const handleConfirm = () => {
     if (
       !confirmAction ||
-      isBusy ||
+      usePillMutation.isPending ||
       sellEquipmentMutation.isPending
     ) {
       return
@@ -278,13 +363,36 @@ export function LoadoutMock() {
         idempotencyKey,
       })
     } else {
-      setIsBusy(true)
-      window.setTimeout(() => {
-        consumePill(confirmAction.templateId)
-        setIsBusy(false)
-        setConfirmAction(null)
-      }, 400)
+      const idempotencyKey = getOrCreateIdempotencyKey(
+        usePillIdempotencyKey,
+        uuid,
+      )
+      setUsePillIdempotencyKey(idempotencyKey)
+      setPillNotice(null)
+      setPillError(null)
+      usePillMutation.mutate({
+        values: { templateId: confirmAction.templateId },
+        idempotencyKey,
+      })
     }
+  }
+
+  /** 使用後端商品與冪等鍵購買一枚丹藥。 */
+  const handlePurchasePill = (templateId: string): void => {
+    if (purchasePillMutation.isPending) {
+      return
+    }
+    const idempotencyKey =
+      purchaseIdempotency?.templateId === templateId
+        ? purchaseIdempotency.key
+        : uuid()
+    setPurchaseIdempotency({ templateId, key: idempotencyKey })
+    setPillNotice(null)
+    setPillError(null)
+    purchasePillMutation.mutate({
+      values: { templateId, quantity: 1 },
+      idempotencyKey,
+    })
   }
 
   const renderInventory = () => {
@@ -522,7 +630,7 @@ export function LoadoutMock() {
         <div className="grid gap-2">
           {gameState.pills.map((pill) => {
             const isBreakthroughPill =
-              pill.templateId === 'pill_breakthrough_01'
+              pill.effectTiming === 'breakthrough'
             return (
               <div
                 className="grid min-w-0 gap-3 rounded-md border border-white/10 bg-black/15 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
@@ -541,13 +649,18 @@ export function LoadoutMock() {
                 </div>
                 <Button
                   className="w-full sm:w-auto"
-                  disabled={pill.quantity <= 0 || isBreakthroughPill}
-                  onClick={() =>
+                  disabled={
+                    pill.quantity <= 0 ||
+                    pill.effectTiming !== 'instant' ||
+                    usePillMutation.isPending
+                  }
+                  onClick={() => {
+                    setPillError(null)
                     setConfirmAction({
                       kind: 'usePill',
                       templateId: pill.templateId,
                     })
-                  }
+                  }}
                 >
                   {isBreakthroughPill ? '突破時使用' : '使用丹藥'}
                 </Button>
@@ -555,6 +668,25 @@ export function LoadoutMock() {
             )
           })}
         </div>
+        {gameState.pills.length === 0 ? (
+          <p className="text-sm text-neutral-500">
+            背包中尚無可顯示的丹藥。
+          </p>
+        ) : null}
+        {pillNotice ? (
+          <p
+            aria-live="polite"
+            className="mt-4 text-sm text-jade-100"
+            role="status"
+          >
+            {pillNotice}
+          </p>
+        ) : null}
+        {pillError ? (
+          <p className="mt-4 text-sm text-cinnabar-100" role="alert">
+            {pillError}
+          </p>
+        ) : null}
       </Panel>
     )
   }
@@ -699,23 +831,50 @@ export function LoadoutMock() {
         <p className="text-xs text-neutral-500">
           持有靈石{' '}
           <span className="tabular-nums text-gold-100">
-            {gameState.character.spiritStones.toLocaleString()}
+            {(
+              shopPillsQuery.data?.data.spiritStones ??
+              gameState.character.spiritStones
+            ).toLocaleString()}
           </span>
         </p>
+        {pillNotice ? (
+          <p
+            aria-live="polite"
+            className="mt-3 text-sm text-jade-100"
+            role="status"
+          >
+            {pillNotice}
+          </p>
+        ) : null}
+        {pillError ? (
+          <p className="mt-3 text-sm text-cinnabar-100" role="alert">
+            {pillError}
+          </p>
+        ) : null}
         <div className="mt-4 grid gap-3">
-          {gameState.pills.map((pill: MockPill) => {
-            const canBuy =
-              gameState.character.spiritStones >= pill.price
+          {shopPillsQuery.data?.data.products.map((pill) => {
+            const ownedQuantity =
+              gameState.pills.find(
+                (ownedPill) =>
+                  ownedPill.templateId === pill.id,
+              )?.quantity ?? 0
+            const canBuy = pill.affordable && pill.realmEligible
             return (
               <div
                 className="rounded-md border border-white/10 bg-black/20 p-3"
-                key={pill.templateId}
+                key={pill.id}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-neutral-200">{pill.name}</p>
                     <p className="mt-1 break-words text-xs text-neutral-500">
-                      {pill.effect}
+                      {pill.effects
+                        .map((effect) => effect.display)
+                        .join('、')}
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-600">
+                      持有 {ownedQuantity.toLocaleString()}・
+                      {pill.usableRealmName}可用
                     </p>
                   </div>
                   <span className="shrink-0 tabular-nums text-gold-100">
@@ -724,15 +883,40 @@ export function LoadoutMock() {
                 </div>
                 <Button
                   className="mt-3 w-full"
-                  disabled={!canBuy}
-                  onClick={() => buyPill(pill.templateId)}
+                  disabled={
+                    !canBuy || purchasePillMutation.isPending
+                  }
+                  isLoading={
+                    purchasePillMutation.isPending &&
+                    purchaseIdempotency?.templateId === pill.id
+                  }
+                  onClick={() => handlePurchasePill(pill.id)}
                   variant={canBuy ? 'secondary' : 'ghost'}
                 >
-                  {canBuy ? '購買一枚' : '靈石不足'}
+                  {!pill.realmEligible
+                    ? '境界不足'
+                    : pill.affordable
+                      ? '購買一枚'
+                      : '靈石不足'}
                 </Button>
               </div>
             )
           })}
+          {shopPillsQuery.isPending ? (
+            <p className="text-sm text-neutral-500" role="status">
+              正在載入後端丹藥商店…
+            </p>
+          ) : null}
+          {shopPillsQuery.isError ? (
+            <p className="text-sm text-cinnabar-100" role="alert">
+              {getApiClientError(shopPillsQuery.error).message}
+            </p>
+          ) : null}
+          {shopPillsQuery.data?.data.products.length === 0 ? (
+            <p className="text-sm text-neutral-500">
+              目前沒有可購買的 V1 丹藥。
+            </p>
+          ) : null}
         </div>
         <Button className="mt-5 w-full" onClick={closeShop} variant="ghost">
           關閉商店
@@ -740,7 +924,10 @@ export function LoadoutMock() {
       </Drawer>
 
       <Modal
-        isBusy={isBusy || sellEquipmentMutation.isPending}
+        isBusy={
+          usePillMutation.isPending ||
+          sellEquipmentMutation.isPending
+        }
         isOpen={confirmAction !== null}
         onClose={closeConfirm}
         title={
@@ -772,18 +959,29 @@ export function LoadoutMock() {
           <>
             <p>使用 {confirmPill.name}？</p>
             <p className="mt-2 text-jade-100">{confirmPill.effect}</p>
+            {pillError ? (
+              <p className="mt-3 text-sm text-cinnabar-100" role="alert">
+                {pillError}
+              </p>
+            ) : null}
           </>
         ) : null}
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Button
-            disabled={isBusy || sellEquipmentMutation.isPending}
+            disabled={
+              usePillMutation.isPending ||
+              sellEquipmentMutation.isPending
+            }
             onClick={closeConfirm}
             variant="ghost"
           >
             取消
           </Button>
           <Button
-            isLoading={isBusy || sellEquipmentMutation.isPending}
+            isLoading={
+              usePillMutation.isPending ||
+              sellEquipmentMutation.isPending
+            }
             onClick={handleConfirm}
             variant={confirmEquipment ? 'danger' : 'primary'}
           >

@@ -215,6 +215,7 @@ export const createGameViewState = (
         templateId: item.id,
         name: item.name,
         effect: getEffectLabels(item).join('、'),
+        effectTiming: item.effectTiming ?? 'instant',
         price: 0,
         quantity: entry.quantity,
       },
