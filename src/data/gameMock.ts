@@ -6,6 +6,9 @@ export type MockScenario =
   | 'empty'
   | 'insufficient'
   | 'foundationComplete'
+  | 'longName'
+  | 'disconnected'
+  | 'sessionExpired'
 
 export type MockCharacter = {
   id: string
@@ -287,6 +290,7 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
     character: {
       ...baseGameState.character,
       spiritStones: 80,
+      health: 2200,
       spiritPower: 12,
     },
   }),
@@ -299,6 +303,26 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       cultivation: 36000,
       cultivationTarget: 36000,
     },
+  }),
+  longName: createScenarioFixture('longName', {
+    notice: '長名稱與大數值情境，用於檢查角色列與導覽穩定性。',
+    character: {
+      ...baseGameState.character,
+      name: '雲海彼端觀星問道的無名劍修前輩',
+      cultivation: 987654321,
+      cultivationTarget: 1200000000,
+      health: 84200000,
+      maxHealth: 98000000,
+      spiritPower: 8200000,
+      maxSpiritPower: 10000000,
+      spiritStones: 1286400000,
+    },
+  }),
+  disconnected: createScenarioFixture('disconnected', {
+    notice: '連線中斷，畫面保留最後一次成功載入的記憶體資料。',
+  }),
+  sessionExpired: createScenarioFixture('sessionExpired', {
+    notice: '登入狀態已失效，請返回登入頁重新驗證。',
   }),
 }
 
@@ -314,6 +338,9 @@ export const mockScenarioOptions: Array<{
   { value: 'empty', label: '空資料', tone: 'neutral' },
   { value: 'insufficient', label: '資源不足', tone: 'cinnabar' },
   { value: 'foundationComplete', label: '築基圓滿', tone: 'gold' },
+  { value: 'longName', label: '長名稱與大數值', tone: 'gold' },
+  { value: 'disconnected', label: '連線中斷', tone: 'cinnabar' },
+  { value: 'sessionExpired', label: 'Session 失效', tone: 'cinnabar' },
 ]
 
 export const getMockGameState = (scenario: MockScenario): MockGameState => {

@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { CharacterCreateView } from '@/views/characterCreate'
+import { GameShellView } from '@/views/gameShell'
 import { HomeView } from '@/views/home'
 import { LoginView } from '@/views/login'
-import { MockDestinationView } from '@/views/mockDestination'
 
 /** 提供 UI Mock 畫面與成功導向示意路由。 */
 export function AppRouter() {
@@ -19,9 +19,16 @@ export function AppRouter() {
         path="/character/create"
       />
       <Route
-        element={<MockDestinationView />}
+        element={<Navigate replace to="/game/cultivation" />}
+        path="/game"
+      />
+      <Route
+        element={<GameShellView />}
         path="/game/cultivation"
       />
+      <Route element={<GameShellView />} path="/game/explore" />
+      <Route element={<GameShellView />} path="/game/loadout" />
+      <Route element={<GameShellView />} path="/game/cave" />
       <Route element={<Navigate replace to="/login" />} path="*" />
     </Routes>
   )

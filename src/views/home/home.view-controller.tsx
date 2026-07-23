@@ -29,6 +29,9 @@ const scenarioTone = {
   empty: 'neutral',
   insufficient: 'cinnabar',
   foundationComplete: 'gold',
+  longName: 'gold',
+  disconnected: 'cinnabar',
+  sessionExpired: 'cinnabar',
 } as const
 
 /** 呈現 UI-01 的設計基礎與 Mock GameState 展示板。 */
