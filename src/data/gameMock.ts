@@ -126,6 +126,10 @@ export type MockCultivationState = {
   rootEssence: number
   rootUpgradeCost: number
   nextRootQuality: string | null
+  /** 後端 GameState 判定目前是否可升級靈根。 */
+  canUpgradeRoot: boolean
+  /** 後端回傳的靈根不可升級原因。 */
+  rootUpgradeUnavailableReason: string | null
   breakthroughOutcome: 'success' | 'failure'
 }
 
@@ -392,6 +396,8 @@ const baseGameState: MockGameState = {
     rootEssence: 86,
     rootUpgradeCost: 60,
     nextRootQuality: '天品',
+    canUpgradeRoot: true,
+    rootUpgradeUnavailableReason: null,
     breakthroughOutcome: 'success',
   },
   isLoading: false,

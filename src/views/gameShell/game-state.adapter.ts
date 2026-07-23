@@ -316,6 +316,10 @@ export const createGameViewState = (
               gameState.spiritualRootUpgradePreview.nextQuality
             ] ??
             gameState.spiritualRootUpgradePreview.nextQuality),
+      canUpgradeRoot:
+        gameState.spiritualRootUpgradePreview.canUpgrade,
+      rootUpgradeUnavailableReason:
+        gameState.spiritualRootUpgradePreview.unavailableReason,
       breakthroughOutcome: 'success',
     },
     isLoading: false,

@@ -10,6 +10,7 @@ import {
   breakthroughUsecase,
   claimCultivationUsecase,
   getBreakthroughPreviewUsecase,
+  upgradeSpiritualRootUsecase,
 } from '@/domain'
 import type { BreakthroughParams } from '@/domain/repository'
 import { useFetch, useMutation } from '@/hook'
@@ -32,6 +33,12 @@ interface BreakthroughMutationParams {
   idempotencyKey: string
 }
 
+/** 靈根升級 mutation 使用的參數。 */
+interface RootUpgradeMutationParams {
+  /** 同一次升級與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
 type CultivationModal =
   | 'breakthroughConfirm'
   | 'breakthroughResult'
@@ -46,13 +53,8 @@ const formatDuration = (minutes: number) => {
 
 /** UI-05 修煉、突破與靈根成長的純記憶體互動 Mock。 */
 export function CultivationMock() {
-  const {
-    gameState,
-    reloadGameState,
-    upgradeSpiritualRoot,
-  } = useGameRuntime()
+  const { gameState, reloadGameState } = useGameRuntime()
   const [modal, setModal] = useState<CultivationModal>(null)
-  const [isBusy, setIsBusy] = useState(false)
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
     'success' | 'failure' | null
   >(null)
@@ -63,7 +65,14 @@ export function CultivationMock() {
   const [selectedPillId, setSelectedPillId] = useState('')
   const [breakthroughIdempotencyKey, setBreakthroughIdempotencyKey] =
     useState<string | null>(null)
+  const [rootUpgradeNotice, setRootUpgradeNotice] = useState<
+    string | null
+  >(null)
+  const [rootUpgradeError, setRootUpgradeError] = useState<
+    string | null
+  >(null)
   const claimKeyRef = useRef<string | null>(null)
+  const rootUpgradeKeyRef = useRef<string | null>(null)
   const { character, cultivationState } = gameState
 
   const breakthroughPreviewQuery = useFetch(
@@ -111,6 +120,28 @@ export function CultivationMock() {
       },
     },
   )
+  const rootUpgradeMutation = useMutation(
+    ({ idempotencyKey }: RootUpgradeMutationParams) =>
+      upgradeSpiritualRootUsecase({ idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        rootUpgradeKeyRef.current = null
+        setRootUpgradeError(null)
+        setRootUpgradeNotice(
+          `靈根已由 ${response.data.beforeQuality} 提升至 ${response.data.afterQuality}，消耗 ${response.data.consumedEssence.toLocaleString()} 靈根精華。`,
+        )
+        await Promise.all([
+          reloadGameState(),
+          breakthroughPreviewQuery.refetch(),
+        ])
+        setModal(null)
+      },
+      onError: (error) => {
+        setRootUpgradeError(getApiClientError(error).message)
+      },
+    },
+  )
 
   const preview = breakthroughPreviewQuery.data?.data
   const breakthroughPreviewError = breakthroughPreviewQuery.error
@@ -128,10 +159,8 @@ export function CultivationMock() {
     !claimMutation.isPending &&
     !isFoundationComplete
   const canUpgradeRoot =
-    cultivationState.nextRootQuality !== null &&
-    cultivationState.rootEssence >=
-      cultivationState.rootUpgradeCost &&
-    !isFoundationComplete
+    cultivationState.canUpgradeRoot &&
+    !rootUpgradeMutation.isPending
 
   const breakthroughReasonLabels: Record<string, string> = {
     BREAKTHROUGH_NOT_READY: '修為尚未圓滿',
@@ -145,13 +174,23 @@ export function CultivationMock() {
     ) ?? []
 
   const closeModal = useCallback(() => {
-    if (!isBusy && !breakthroughMutation.isPending) {
+    if (
+      !rootUpgradeMutation.isPending &&
+      !breakthroughMutation.isPending
+    ) {
       setModal(null)
     }
-  }, [breakthroughMutation.isPending, isBusy])
+  }, [
+    breakthroughMutation.isPending,
+    rootUpgradeMutation.isPending,
+  ])
 
   const handleClaim = () => {
-    if (!canClaim || isBusy || claimMutation.isPending) {
+    if (
+      !canClaim ||
+      rootUpgradeMutation.isPending ||
+      claimMutation.isPending
+    ) {
       return
     }
 
@@ -167,7 +206,7 @@ export function CultivationMock() {
   const handleConfirmBreakthrough = () => {
     if (
       !canBreakthrough ||
-      isBusy ||
+      rootUpgradeMutation.isPending ||
       breakthroughMutation.isPending
     ) {
       return
@@ -188,16 +227,18 @@ export function CultivationMock() {
   }
 
   const handleConfirmRootUpgrade = () => {
-    if (!canUpgradeRoot || isBusy) {
+    if (!canUpgradeRoot || rootUpgradeMutation.isPending) {
       return
     }
 
-    setIsBusy(true)
-    window.setTimeout(() => {
-      upgradeSpiritualRoot()
-      setIsBusy(false)
-      setModal(null)
-    }, 450)
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      rootUpgradeKeyRef.current,
+      uuid,
+    )
+    rootUpgradeKeyRef.current = idempotencyKey
+    setRootUpgradeNotice(null)
+    setRootUpgradeError(null)
+    rootUpgradeMutation.mutate({ idempotencyKey })
   }
 
   return (
@@ -381,11 +422,34 @@ export function CultivationMock() {
                 : '已達天品'}
             </Button>
           </div>
+          {rootUpgradeNotice ? (
+            <p
+              aria-live="polite"
+              className="mt-3 text-sm text-jade-100"
+              role="status"
+            >
+              {rootUpgradeNotice}
+            </p>
+          ) : null}
+          {rootUpgradeError ? (
+            <p className="mt-3 text-sm text-cinnabar-100" role="alert">
+              {rootUpgradeError}
+            </p>
+          ) : null}
+          {!cultivationState.canUpgradeRoot &&
+          cultivationState.rootUpgradeUnavailableReason ? (
+            <p className="mt-3 text-xs text-cinnabar-100">
+              {cultivationState.rootUpgradeUnavailableReason}
+            </p>
+          ) : null}
         </Panel>
       </div>
 
       <Modal
-        isBusy={isBusy || breakthroughMutation.isPending}
+        isBusy={
+          rootUpgradeMutation.isPending ||
+          breakthroughMutation.isPending
+        }
         isOpen={modal === 'breakthroughConfirm'}
         onClose={closeModal}
         title="確認突破"
@@ -415,7 +479,10 @@ export function CultivationMock() {
         </dl>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Button
-            disabled={isBusy || breakthroughMutation.isPending}
+            disabled={
+              rootUpgradeMutation.isPending ||
+              breakthroughMutation.isPending
+            }
             onClick={closeModal}
             variant="ghost"
           >
@@ -455,7 +522,7 @@ export function CultivationMock() {
       </Modal>
 
       <Modal
-        isBusy={isBusy}
+        isBusy={rootUpgradeMutation.isPending}
         isOpen={modal === 'rootConfirm'}
         onClose={closeModal}
         title="確認提升靈根"
@@ -472,11 +539,15 @@ export function CultivationMock() {
           靈根精華，提升後不可復原。
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button disabled={isBusy} onClick={closeModal} variant="ghost">
+          <Button
+            disabled={rootUpgradeMutation.isPending}
+            onClick={closeModal}
+            variant="ghost"
+          >
             取消
           </Button>
           <Button
-            isLoading={isBusy}
+            isLoading={rootUpgradeMutation.isPending}
             onClick={handleConfirmRootUpgrade}
           >
             確認提升
