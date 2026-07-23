@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   Button,
   Modal,
@@ -6,7 +6,17 @@ import {
   ProgressBar,
   StatusBadge,
 } from '@/components'
+import { claimCultivationUsecase } from '@/domain'
+import { useMutation } from '@/hook'
+import { uuid } from '@/lib/uuid'
+import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
+
+/** 修為領取 mutation 使用的冪等參數。 */
+interface ClaimCultivationMutationParams {
+  /** 同一次領取與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
 
 type CultivationModal =
   | 'breakthroughConfirm'
@@ -24,7 +34,7 @@ const formatDuration = (minutes: number) => {
 export function CultivationMock() {
   const {
     gameState,
-    claimCultivation,
+    reloadGameState,
     resolveBreakthrough,
     upgradeSpiritualRoot,
   } = useGameRuntime()
@@ -33,7 +43,23 @@ export function CultivationMock() {
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
     'success' | 'failure' | null
   >(null)
+  const [claimNotice, setClaimNotice] = useState<string | null>(null)
+  const claimKeyRef = useRef<string | null>(null)
   const { character, cultivationState } = gameState
+
+  const claimMutation = useMutation(
+    ({ idempotencyKey }: ClaimCultivationMutationParams) =>
+      claimCultivationUsecase({ idempotencyKey }),
+    {
+      onSuccess: async (response) => {
+        claimKeyRef.current = null
+        setClaimNotice(
+          `已領取 ${response.data.awardedCultivation.toLocaleString()} 修為。`,
+        )
+        await reloadGameState()
+      },
+    },
+  )
 
   const isFoundationComplete =
     character.realm === '築基境' && character.minorRealm === '圓滿'
@@ -46,6 +72,7 @@ export function CultivationMock() {
   const canClaim =
     cultivationState.claimableCultivation > 0 &&
     !gameState.isLoading &&
+    !claimMutation.isPending &&
     !isFoundationComplete
   const canUpgradeRoot =
     cultivationState.nextRootQuality !== null &&
@@ -68,15 +95,17 @@ export function CultivationMock() {
   }, [isBusy])
 
   const handleClaim = () => {
-    if (!canClaim || isBusy) {
+    if (!canClaim || isBusy || claimMutation.isPending) {
       return
     }
 
-    setIsBusy(true)
-    window.setTimeout(() => {
-      claimCultivation()
-      setIsBusy(false)
-    }, 450)
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      claimKeyRef.current,
+      uuid,
+    )
+    claimKeyRef.current = idempotencyKey
+    setClaimNotice(null)
+    claimMutation.mutate({ idempotencyKey })
   }
 
   const handleConfirmBreakthrough = () => {
@@ -133,12 +162,21 @@ export function CultivationMock() {
                   ? `${cultivationState.equippedMethodName} × ${cultivationState.methodMultiplier}`
                   : '未裝備功法 × 1'}
               </p>
+              {claimNotice ? (
+                <p
+                  aria-live="polite"
+                  className="mt-3 text-sm text-jade-100"
+                  role="status"
+                >
+                  {claimNotice}
+                </p>
+              ) : null}
             </div>
 
             <Button
               className="w-full sm:w-auto"
               disabled={!canClaim}
-              isLoading={isBusy && modal === null}
+              isLoading={claimMutation.isPending}
               onClick={handleClaim}
             >
               領取修為
