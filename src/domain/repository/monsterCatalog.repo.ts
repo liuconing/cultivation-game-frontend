@@ -1,4 +1,6 @@
 import { apiClient } from '@/lib/axios'
+import type { ApiSuccess } from './common'
+import { apiEndpoints } from './endpoints'
 
 export const monsterMapIds = [
   'mortal_forest',
@@ -157,14 +159,14 @@ export interface GetMonstersParams {
 }
 
 /** `GET /monsters` 回傳格式。 */
-export interface GetMonstersRes {
-  /** 固定為 true，代表請求成功。 */
-  ok: true
+export interface GetMonstersData {
   /** 符合條件的怪物總數。 */
   total: number
   /** 怪物列表。 */
   monsters: MonsterCatalogResponse[]
 }
+
+export type GetMonstersRes = ApiSuccess<GetMonstersData>
 
 /**
  * 取得怪物圖鑑資料。
@@ -175,9 +177,10 @@ export interface GetMonstersRes {
 export const getMonsters = async (
   params: GetMonstersParams = {},
 ): Promise<GetMonstersRes> => {
-  const { data } = await apiClient.get<GetMonstersRes>('/monsters', {
-    params,
-  })
+  const { data } = await apiClient.get<GetMonstersRes>(
+    apiEndpoints.getMonsters.path(),
+    { params },
+  )
 
   return data
 }

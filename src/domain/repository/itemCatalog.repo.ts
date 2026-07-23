@@ -1,4 +1,6 @@
 import { apiClient } from '@/lib/axios'
+import type { ApiSuccess } from './common'
+import { apiEndpoints } from './endpoints'
 
 export const itemCategories = [
   'accessories',
@@ -43,6 +45,7 @@ export type ItemQuality = (typeof itemQualities)[number]
 export type ItemSlot = (typeof itemSlots)[number]
 export type ItemUsableRealm = (typeof itemUsableRealms)[number]
 export type ItemEffectTiming = (typeof itemEffectTimings)[number]
+export type ItemReleaseScope = 'v1' | 'future'
 
 /** 道具效果條目。 */
 export interface ItemEffect {
@@ -86,6 +89,8 @@ export interface ItemCatalogResponse {
   effectTiming?: ItemEffectTiming
   /** 效果持續回合數。 */
   durationTurns?: number
+  /** 內容發布範圍。 */
+  releaseScope: ItemReleaseScope
   /** 建立時間（ISO 字串）。 */
   createdAt: string
   /** 更新時間（ISO 字串）。 */
@@ -105,14 +110,14 @@ export interface GetItemsParams {
 }
 
 /** `GET /items` 回傳格式。 */
-export interface GetItemsRes {
-  /** 固定為 true，代表請求成功。 */
-  ok: true
+export interface GetItemsData {
   /** 符合條件的道具總數。 */
   total: number
   /** 道具列表。 */
   items: ItemCatalogResponse[]
 }
+
+export type GetItemsRes = ApiSuccess<GetItemsData>
 
 /**
  * 取得道具圖鑑資料。
@@ -123,9 +128,12 @@ export interface GetItemsRes {
 export const getItems = async (
   params: GetItemsParams = {},
 ): Promise<GetItemsRes> => {
-  const { data } = await apiClient.get<GetItemsRes>('/items', {
-    params,
-  })
+  const { data } = await apiClient.get<GetItemsRes>(
+    apiEndpoints.getItems.path(),
+    {
+      params,
+    },
+  )
 
   return data
 }

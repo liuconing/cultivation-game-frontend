@@ -1,76 +1,58 @@
 import { apiClient } from '@/lib/axios'
+import type { ApiSuccess, IsoDateString } from './common'
+import { apiEndpoints } from './endpoints'
 
-/** 後端 auth API 回傳的使用者資料。 */
+/** 認證 API 回傳的使用者資料。 */
 export interface AuthUser {
-  /** 使用者 ID。 */
   id: string
-  /** 使用者 email。 */
   email: string
-  /** 使用者名稱。 */
-  username: string
-  /** 建立時間（ISO 字串）。 */
-  createdAt: string
-  /** 更新時間（ISO 字串）。 */
-  updatedAt: string
+  createdAt: IsoDateString
+  updatedAt: IsoDateString
 }
 
-/** 註冊與登入成功共用的回傳格式。 */
-export interface AuthRes {
-  /** 固定為 true，代表請求成功。 */
-  ok: true
-  /** JWT token。 */
-  token: string
-  /** 登入的使用者資料。 */
-  user: AuthUser
-}
-
-/** `POST /auth/login` 傳入參數。 */
+/** `POST /auth/login` request body。 */
 export interface LoginUserParams {
-  /** 登入 email。 */
   email: string
-  /** 登入密碼。 */
   password: string
 }
 
-/** `POST /auth/register` 傳入參數。 */
-export interface RegisterUserParams extends LoginUserParams {
-  /** 使用者名稱。 */
-  username: string
+/** `POST /auth/register` request body。 */
+export type RegisterUserParams = LoginUserParams
+
+/** 登入成功資料。 */
+export interface LoginUserData {
+  token: string
+  user: AuthUser
 }
 
-/** `POST /auth/login` 回傳格式。 */
-export type LoginUserRes = AuthRes
+/** 註冊成功資料；token 需透過登入取得。 */
+export interface RegisterUserData {
+  user: AuthUser
+}
 
-/** `POST /auth/register` 回傳格式。 */
-export type RegisterUserRes = AuthRes
+export type LoginUserRes = ApiSuccess<LoginUserData>
+export type RegisterUserRes = ApiSuccess<RegisterUserData>
 
-/**
- * 註冊使用者並取得 JWT token。
- *
- * @param params - 註冊所需的 email、密碼與使用者名稱。
- * @returns 註冊成功的使用者資料與 token。
- */
+/** 註冊使用者。 */
 export const registerUser = async (
   params: RegisterUserParams,
 ): Promise<RegisterUserRes> => {
   const { data } = await apiClient.post<RegisterUserRes>(
-    '/auth/register',
+    apiEndpoints.register.path(),
     params,
   )
 
   return data
 }
 
-/**
- * 登入使用者並取得 JWT token。
- *
- * @param params - 登入所需的 email 與密碼。
- * @returns 登入成功的使用者資料與 token。
- */
+/** 登入並取得 JWT token。 */
 export const loginUser = async (
   params: LoginUserParams,
 ): Promise<LoginUserRes> => {
-  const { data } = await apiClient.post<LoginUserRes>('/auth/login', params)
+  const { data } = await apiClient.post<LoginUserRes>(
+    apiEndpoints.login.path(),
+    params,
+  )
 
   return data
 }

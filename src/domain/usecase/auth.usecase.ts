@@ -31,7 +31,7 @@ export const loginUserUsecase = async (
 }
 
 /**
- * 註冊使用者並取得 JWT token。
+ * 註冊使用者；JWT token 需於登入後取得。
  *
  * @param params - 註冊所需的 email、密碼與使用者名稱。
  * @returns 註冊回傳 DTO。

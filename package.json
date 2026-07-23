@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:api-smoke": "node --env-file-if-exists=.env scripts/api-smoke.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

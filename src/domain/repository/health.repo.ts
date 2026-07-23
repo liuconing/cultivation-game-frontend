@@ -1,22 +1,20 @@
 import { apiClient } from '@/lib/axios'
+import type { ApiSuccess } from './common'
+import { apiEndpoints } from './endpoints'
 
-/** `GET /health` 回傳格式。 */
-export interface GetHealthRes {
-  /** 固定為 true，代表服務正常。 */
-  ok: true
-  /** 服務健康狀態。 */
+/** 後端健康狀態資料。 */
+export interface HealthData {
   status: 'healthy'
-  /** MongoDB 連線狀態代碼。 */
   mongo: number
 }
 
-/**
- * 取得後端健康狀態與 MongoDB 連線狀態。
- *
- * @returns 後端健康檢查結果。
- */
+export type GetHealthRes = ApiSuccess<HealthData>
+
+/** 取得後端與 MongoDB 健康狀態。 */
 export const getHealth = async (): Promise<GetHealthRes> => {
-  const { data } = await apiClient.get<GetHealthRes>('/health')
+  const { data } = await apiClient.get<GetHealthRes>(
+    apiEndpoints.health.path(),
+  )
 
   return data
 }

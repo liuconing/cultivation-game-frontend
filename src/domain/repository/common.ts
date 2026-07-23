@@ -1,17 +1,31 @@
-/** 後端 API 共用的錯誤回傳格式。 */
-export interface ApiErrorResponse {
-  /** 固定為 false，代表請求失敗。 */
-  ok: false
-  /** 錯誤訊息。 */
-  message: string
+/** 後端序列化後的 ISO 8601 日期字串。 */
+export type IsoDateString = string
+
+/** API 成功回應 envelope。 */
+export interface ApiSuccess<T> {
+  ok: true
+  data: T
 }
 
-/**
- * 建立後端受保護路由所需的 Authorization 標頭。
- *
- * @param token - 使用者 JWT token。
- * @returns 帶有 Bearer token 的 Authorization 標頭。
- */
-export const createAuthorizationHeaders = (token: string) => ({
-  Authorization: `Bearer ${token}`,
+/** API 失敗回應 envelope。 */
+export interface ApiFailure {
+  ok: false
+  code: string
+  message: string
+  details?: unknown
+}
+
+/** API 完整回應型別。 */
+export type ApiEnvelope<T> = ApiSuccess<T> | ApiFailure
+
+/** 所有資源異動請求必須提供的冪等設定。 */
+export interface MutationOptions {
+  idempotencyKey: string
+}
+
+/** 建立資源異動請求使用的 Idempotency-Key header。 */
+export const createMutationHeaders = ({
+  idempotencyKey,
+}: MutationOptions) => ({
+  'Idempotency-Key': idempotencyKey,
 })
