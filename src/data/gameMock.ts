@@ -80,7 +80,10 @@ export type MockCultivationMethod = {
   name: string
   quality: MockInventoryItem['quality']
   minimumRealm: string
+  quantity: number
+  realmEligible: boolean
   cultivationMultiplier: number
+  breakthroughBonus: number
   equipped: boolean
 }
 
@@ -289,7 +292,10 @@ const baseGameState: MockGameState = {
       name: '太虛引氣篇',
       quality: '上品',
       minimumRealm: '凝氣',
+      quantity: 1,
+      realmEligible: true,
       cultivationMultiplier: 1.42,
+      breakthroughBonus: 6,
       equipped: true,
     },
     {
@@ -297,7 +303,10 @@ const baseGameState: MockGameState = {
       name: '煙霞吐納篇',
       quality: '良品',
       minimumRealm: '練氣',
+      quantity: 1,
+      realmEligible: true,
       cultivationMultiplier: 1.18,
+      breakthroughBonus: 3,
       equipped: false,
     },
     {
@@ -305,7 +314,10 @@ const baseGameState: MockGameState = {
       name: '九轉金丹錄',
       quality: '極品',
       minimumRealm: '金丹',
+      quantity: 1,
+      realmEligible: false,
       cultivationMultiplier: 1.88,
+      breakthroughBonus: 12,
       equipped: false,
     },
   ],

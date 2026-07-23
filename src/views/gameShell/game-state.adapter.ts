@@ -51,6 +51,19 @@ const realmLabels: Record<string, string> = {
   true_immortal: '真仙境',
 }
 
+const realmRanks: Record<string, number> = {
+  qi_condensation: 0,
+  qi_refining: 1,
+  foundation: 2,
+  golden_core: 3,
+  nascent_soul: 4,
+  spirit_transformation: 5,
+  body_integration: 6,
+  mahayana: 7,
+  tribulation: 8,
+  true_immortal: 9,
+}
+
 const minorRealmLabels: Record<string, string> = {
   early: '初期',
   middle: '中期',
@@ -180,6 +193,9 @@ export const createGameViewState = (
       const rateEffect = item.effects.find(
         (effect) => effect.stat === 'cultivationRate',
       )
+      const breakthroughEffect = item.effects.find(
+        (effect) => effect.stat === 'breakthroughRate',
+      )
       return [
         {
           templateId: item.id,
@@ -187,9 +203,14 @@ export const createGameViewState = (
           quality: qualityLabels[item.quality],
           minimumRealm:
             realmLabels[item.usableRealm] ?? item.usableRealmName,
+          quantity: entry.quantity,
+          realmEligible:
+            (realmRanks[gameState.character.realm] ?? -1) >=
+            (realmRanks[item.usableRealm] ?? Number.POSITIVE_INFINITY),
           cultivationMultiplier: rateEffect
             ? 1 + rateEffect.value / 100
             : 1,
+          breakthroughBonus: breakthroughEffect?.value ?? 0,
           equipped:
             gameState.equippedCultivationMethodId === item.id,
         },

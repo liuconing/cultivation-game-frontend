@@ -13,6 +13,7 @@ import type {
 } from '@/data/gameMock'
 import {
   compareEquipmentUsecase,
+  equipCultivationMethodUsecase,
   equipEquipmentUsecase,
   equipSkillsUsecase,
   getShopPillsUsecase,
@@ -22,6 +23,7 @@ import {
 } from '@/domain'
 import type {
   EquipSkillsParams,
+  EquipCultivationMethodParams,
   EquipmentInstanceParams,
   PurchasePillParams,
   UsePillParams,
@@ -46,6 +48,14 @@ interface EquipEquipmentMutationParams {
   /** 要穿戴的裝備 instance。 */
   values: EquipmentInstanceParams
   /** 同一次穿戴與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 功法配置 mutation 使用的參數。 */
+interface EquipCultivationMethodMutationParams {
+  /** 玩家要裝備的後端功法模板。 */
+  values: EquipCultivationMethodParams
+  /** 同一次配置與網路重試共用的冪等鍵。 */
   idempotencyKey: string
 }
 
@@ -117,11 +127,7 @@ function ItemSummary({
 
 /** UI-07 五分頁整備、物品抽屜與丹藥商店的記憶體 Mock。 */
 export function LoadoutMock() {
-  const {
-    gameState,
-    equipCultivationMethod,
-    reloadGameState,
-  } = useGameRuntime()
+  const { gameState, reloadGameState } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
   const [inventoryFilter, setInventoryFilter] =
     useState<InventoryFilter>('all')
@@ -143,6 +149,16 @@ export function LoadoutMock() {
   const [sellIdempotencyKey, setSellIdempotencyKey] = useState<
     string | null
   >(null)
+  const [methodNotice, setMethodNotice] = useState<string | null>(
+    null,
+  )
+  const [methodError, setMethodError] = useState<string | null>(null)
+  const [methodIdempotency, setMethodIdempotency] = useState<{
+    /** 冪等鍵所屬的功法模板 ID。 */
+    templateId: string
+    /** 同一次配置與重試共用的冪等鍵。 */
+    key: string
+  } | null>(null)
   const [pillNotice, setPillNotice] = useState<string | null>(null)
   const [pillError, setPillError] = useState<string | null>(null)
   const [purchaseIdempotency, setPurchaseIdempotency] = useState<{
@@ -165,6 +181,48 @@ export function LoadoutMock() {
       enableGlobalError: false,
     },
   )
+
+  const equipMethodMutation = useMutation(
+    (
+      {
+        values,
+        idempotencyKey,
+      }: EquipCultivationMethodMutationParams,
+    ) =>
+      equipCultivationMethodUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        setMethodIdempotency(null)
+        setMethodError(null)
+        setMethodNotice(
+          `功法已裝備：修煉倍率 × ${response.data.cultivationMultiplier}，突破加成 +${response.data.breakthroughBonus}%。`,
+        )
+        await reloadGameState()
+      },
+      onError: (error) => {
+        setMethodError(getApiClientError(error).message)
+      },
+    },
+  )
+
+  /** 裝備玩家持有且符合境界的 V1 功法。 */
+  const handleEquipMethod = (templateId: string): void => {
+    if (equipMethodMutation.isPending) {
+      return
+    }
+    const idempotencyKey =
+      methodIdempotency?.templateId === templateId
+        ? methodIdempotency.key
+        : uuid()
+    setMethodIdempotency({ templateId, key: idempotencyKey })
+    setMethodNotice(null)
+    setMethodError(null)
+    equipMethodMutation.mutate({
+      values: { cultivationMethodTemplateId: templateId },
+      idempotencyKey,
+    })
+  }
 
   const equipSkillsMutation = useMutation(
     ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
@@ -505,9 +563,22 @@ export function LoadoutMock() {
   const renderMethods = () => {
     return (
       <Panel eyebrow="CULTIVATION METHODS" title="功法">
+        {methodNotice ? (
+          <p
+            aria-live="polite"
+            className="mb-3 text-sm text-jade-100"
+            role="status"
+          >
+            {methodNotice}
+          </p>
+        ) : null}
+        {methodError ? (
+          <p className="mb-3 text-sm text-cinnabar-100" role="alert">
+            {methodError}
+          </p>
+        ) : null}
         <div className="grid gap-3">
           {gameState.cultivationMethods.map((method) => {
-            const isLocked = method.minimumRealm === '金丹'
             return (
               <div
                 className="grid min-w-0 gap-3 rounded-md border border-white/10 bg-black/15 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
@@ -515,25 +586,35 @@ export function LoadoutMock() {
               >
                 <div className="min-w-0">
                   <ItemSummary
-                    meta={`最低境界 ${method.minimumRealm}`}
+                    meta={`最低境界 ${method.minimumRealm}・持有 ${method.quantity.toLocaleString()}`}
                     name={method.name}
                     quality={method.quality}
                   />
                   <p className="mt-2 text-sm text-neutral-400">
-                    修煉速度 × {method.cultivationMultiplier}
+                    修煉速度 × {method.cultivationMultiplier}・突破
+                    +{method.breakthroughBonus}%
                   </p>
                 </div>
                 <Button
                   className="w-full sm:w-auto"
-                  disabled={method.equipped || isLocked}
+                  disabled={
+                    method.equipped ||
+                    !method.realmEligible ||
+                    equipMethodMutation.isPending
+                  }
+                  isLoading={
+                    equipMethodMutation.isPending &&
+                    methodIdempotency?.templateId ===
+                      method.templateId
+                  }
                   onClick={() =>
-                    equipCultivationMethod(method.templateId)
+                    handleEquipMethod(method.templateId)
                   }
                   variant={method.equipped ? 'ghost' : 'secondary'}
                 >
                   {method.equipped
                     ? '已裝備'
-                    : isLocked
+                    : !method.realmEligible
                       ? '境界不足'
                       : '裝備功法'}
                 </Button>
@@ -541,6 +622,11 @@ export function LoadoutMock() {
             )
           })}
         </div>
+        {gameState.cultivationMethods.length === 0 ? (
+          <p className="text-sm text-neutral-500">
+            尚未持有可裝備的 V1 功法。
+          </p>
+        ) : null}
       </Panel>
     )
   }
