@@ -4,7 +4,9 @@ import { apiEndpoints } from './endpoints'
 
 /** 後端健康狀態資料。 */
 export interface HealthData {
+  /** 後端服務健康狀態。 */
   status: 'healthy'
+  /** Mongoose 目前的 MongoDB 連線狀態代碼。 */
   mongo: number
 }
 

@@ -3,9 +3,13 @@ export type ApiSmokeExpectation = 'success' | 'validation' | 'unauthorized'
 
 /** API route 與無副作用 smoke test 共用的端點描述。 */
 export interface ApiEndpointDefinition {
+  /** 呼叫端點使用的 HTTP method。 */
   method: ApiEndpointMethod
+  /** 依選填路徑參數產生實際 API path。 */
   path: (pathParameter?: string) => string
+  /** 無副作用 smoke test 預期取得的回應類型。 */
   smokeExpectation: ApiSmokeExpectation
+  /** smoke test 對 POST 端點送出的安全測試 body。 */
   smokeBody?: Record<string, never>
 }
 
