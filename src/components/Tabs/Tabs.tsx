@@ -32,10 +32,39 @@ export function Tabs<T extends string>({
               : 'text-neutral-400 hover:bg-white/[0.06] hover:text-neutral-200'
           }`}
           key={option.value}
+          onKeyDown={(event) => {
+            if (
+              event.key !== 'ArrowRight' &&
+              event.key !== 'ArrowLeft' &&
+              event.key !== 'Home' &&
+              event.key !== 'End'
+            ) {
+              return
+            }
+
+            event.preventDefault()
+            const tabs = Array.from(
+              event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                '[role="tab"]',
+              ) ?? [],
+            )
+            const currentIndex = tabs.indexOf(event.currentTarget)
+            const nextIndex =
+              event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? tabs.length - 1
+                  : event.key === 'ArrowRight'
+                    ? (currentIndex + 1) % tabs.length
+                    : (currentIndex - 1 + tabs.length) % tabs.length
+            tabs[nextIndex]?.focus()
+            tabs[nextIndex]?.click()
+          }}
           onClick={() => {
             onChange(option.value)
           }}
           role="tab"
+          tabIndex={value === option.value ? 0 : -1}
           type="button"
         >
           {option.label}

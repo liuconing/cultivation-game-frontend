@@ -165,7 +165,10 @@ export function LoadoutMock() {
         </label>
 
         {filteredInventory.length > 0 ? (
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div
+            aria-label={`${filteredInventory.length} 組背包物品`}
+            className="mt-4 grid max-h-[60vh] gap-2 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-2"
+          >
             {filteredInventory.map((item) => (
               <div
                 className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-white/10 bg-black/15 p-3"

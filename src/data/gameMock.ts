@@ -14,6 +14,7 @@ export type MockScenario =
   | 'encounter'
   | 'bossFirstKill'
   | 'recovered'
+  | 'largeInventory'
 
 export type MockCharacter = {
   id: string
@@ -586,6 +587,21 @@ export const mockGameStateFixtures: Record<MockScenario, MockGameState> = {
       minutesToFull: 0,
     },
   }),
+  largeInventory: createScenarioFixture('largeInventory', {
+    notice: '大量背包情境，共 48 組物品堆疊。',
+    inventory: Array.from({ length: 48 }, (_, index) => ({
+      id: `bulk-item-${String(index + 1).padStart(2, '0')}`,
+      templateId: `bulk_template_${String(index + 1).padStart(2, '0')}`,
+      name: `雲海秘境採集物・第 ${index + 1} 組長名稱`,
+      type: (
+        ['material', 'pill', 'method'] as const
+      )[index % 3],
+      quality: (
+        ['凡品', '良品', '上品', '極品'] as const
+      )[index % 4],
+      quantity: (index + 1) * 1280,
+    })),
+  }),
 }
 
 export const mockScenarioOptions: Array<{
@@ -608,6 +624,7 @@ export const mockScenarioOptions: Array<{
   { value: 'encounter', label: '奇遇事件', tone: 'jade' },
   { value: 'bossFirstKill', label: 'Boss 首殺', tone: 'gold' },
   { value: 'recovered', label: '休養已回滿', tone: 'jade' },
+  { value: 'largeInventory', label: '大量背包', tone: 'gold' },
 ]
 
 export const getMockGameState = (scenario: MockScenario): MockGameState => {

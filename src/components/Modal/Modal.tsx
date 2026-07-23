@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 type ModalProps = {
   children: ReactNode
@@ -17,6 +17,14 @@ export function Modal({
   onClose,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const onCloseRef = useRef(onClose)
+  const isBusyRef = useRef(isBusy)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+    isBusyRef.current = isBusy
+  }, [isBusy, onClose])
 
   useEffect(() => {
     if (!isOpen) {
@@ -24,20 +32,54 @@ export function Modal({
     }
 
     const triggerElement = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     dialogRef.current?.focus()
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isBusy) {
-        onClose()
+      if (event.key === 'Escape' && !isBusyRef.current) {
+        onCloseRef.current()
+        return
+      }
+
+      if (event.key !== 'Tab') {
+        return
+      }
+
+      const focusableElements = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      )
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements.at(-1)
+
+      if (!firstElement || !lastElement) {
+        event.preventDefault()
+        dialogRef.current?.focus()
+      } else if (
+        event.shiftKey &&
+        (document.activeElement === firstElement ||
+          document.activeElement === dialogRef.current)
+      ) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === lastElement
+      ) {
+        event.preventDefault()
+        firstElement.focus()
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
       triggerElement?.focus()
     }
-  }, [isBusy, isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) {
     return null
@@ -45,7 +87,7 @@ export function Modal({
 
   return (
     <div
-      aria-labelledby="foundation-modal-title"
+      aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
       role="dialog"
@@ -57,7 +99,7 @@ export function Modal({
       >
         <h2
           className="font-serif text-xl text-neutral-100"
-          id="foundation-modal-title"
+          id={titleId}
         >
           {title}
         </h2>
