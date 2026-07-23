@@ -12,6 +12,12 @@ type MockGameStore = {
   resolveBreakthrough: (outcome: 'success' | 'failure') => void
   upgradeSpiritualRoot: () => void
   resolveExploration: () => void
+  equipEquipment: (equipmentId: string) => void
+  sellEquipment: (equipmentId: string) => void
+  equipCultivationMethod: (templateId: string) => void
+  equipSkill: (templateId: string) => void
+  buyPill: (templateId: string) => void
+  usePill: (templateId: string) => void
   reset: () => void
 }
 
@@ -194,6 +200,194 @@ export const useMockGameStore = create<MockGameStore>((set) => ({
             spiritStones:
               character.spiritStones + (isBoss ? 6800 : 1200),
           },
+        },
+      }
+    })
+  },
+  equipEquipment: (equipmentId) => {
+    set(({ gameState }) => {
+      const target = gameState.equipment.find(
+        (equipment) => equipment.id === equipmentId,
+      )
+      if (!target) {
+        return { gameState }
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已穿戴 ${target.name}。`,
+          equipment: gameState.equipment.map((equipment) => ({
+            ...equipment,
+            equipped:
+              equipment.id === equipmentId
+                ? true
+                : equipment.slot === target.slot
+                  ? false
+                  : equipment.equipped,
+          })),
+        },
+      }
+    })
+  },
+  sellEquipment: (equipmentId) => {
+    set(({ gameState }) => {
+      const target = gameState.equipment.find(
+        (equipment) => equipment.id === equipmentId,
+      )
+      if (!target || target.equipped) {
+        return { gameState }
+      }
+
+      const priceByQuality = {
+        凡品: 120,
+        良品: 360,
+        上品: 980,
+        極品: 2400,
+      } as const
+      const price = priceByQuality[target.quality]
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已出售 ${target.name}，獲得 ${price.toLocaleString()} 靈石。`,
+          character: {
+            ...gameState.character,
+            spiritStones: gameState.character.spiritStones + price,
+          },
+          equipment: gameState.equipment.filter(
+            (equipment) => equipment.id !== equipmentId,
+          ),
+        },
+      }
+    })
+  },
+  equipCultivationMethod: (templateId) => {
+    set(({ gameState }) => {
+      const method = gameState.cultivationMethods.find(
+        (item) => item.templateId === templateId,
+      )
+      if (!method || method.minimumRealm === '金丹') {
+        return { gameState }
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已裝備功法 ${method.name}。`,
+          cultivationMethods: gameState.cultivationMethods.map((item) => ({
+            ...item,
+            equipped: item.templateId === templateId,
+          })),
+          cultivationState: {
+            ...gameState.cultivationState,
+            equippedMethodName: method.name,
+            methodMultiplier: method.cultivationMultiplier,
+          },
+        },
+      }
+    })
+  },
+  equipSkill: (templateId) => {
+    set(({ gameState }) => {
+      const skill = gameState.skills.find(
+        (item) => item.templateId === templateId,
+      )
+      if (!skill) {
+        return { gameState }
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已配置${skill.kind === 'active' ? '主動' : '被動'}技能 ${skill.name}。`,
+          skills: gameState.skills.map((item) => ({
+            ...item,
+            equipped:
+              item.templateId === templateId
+                ? true
+                : item.kind === skill.kind
+                  ? false
+                  : item.equipped,
+          })),
+        },
+      }
+    })
+  },
+  buyPill: (templateId) => {
+    set(({ gameState }) => {
+      const pill = gameState.pills.find(
+        (item) => item.templateId === templateId,
+      )
+      if (!pill || gameState.character.spiritStones < pill.price) {
+        return {
+          gameState: {
+            ...gameState,
+            notice: '靈石不足，無法購買此丹藥。',
+          },
+        }
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已購買 ${pill.name}。`,
+          character: {
+            ...gameState.character,
+            spiritStones:
+              gameState.character.spiritStones - pill.price,
+          },
+          pills: gameState.pills.map((item) =>
+            item.templateId === templateId
+              ? { ...item, quantity: item.quantity + 1 }
+              : item,
+          ),
+        },
+      }
+    })
+  },
+  usePill: (templateId) => {
+    set(({ gameState }) => {
+      const pill = gameState.pills.find(
+        (item) => item.templateId === templateId,
+      )
+      if (
+        !pill ||
+        pill.quantity <= 0 ||
+        templateId === 'pill_breakthrough_01'
+      ) {
+        return { gameState }
+      }
+
+      const character = { ...gameState.character }
+      if (templateId === 'pill_heal_01') {
+        character.health = Math.min(
+          character.maxHealth,
+          character.health + Math.ceil(character.maxHealth * 0.25),
+        )
+      } else if (templateId === 'pill_spirit_01') {
+        character.spiritPower = Math.min(
+          character.maxSpiritPower,
+          character.spiritPower +
+            Math.ceil(character.maxSpiritPower * 0.3),
+        )
+      } else if (templateId === 'pill_cultivation_01') {
+        character.cultivation = Math.min(
+          character.cultivationTarget,
+          character.cultivation + 500,
+        )
+      }
+
+      return {
+        gameState: {
+          ...gameState,
+          notice: `已使用 ${pill.name}。`,
+          character,
+          pills: gameState.pills.map((item) =>
+            item.templateId === templateId
+              ? { ...item, quantity: item.quantity - 1 }
+              : item,
+          ),
         },
       }
     })

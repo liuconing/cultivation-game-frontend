@@ -225,6 +225,22 @@ const baseGameState: MockGameState = {
       quality: '凡品',
       quantity: 6,
     },
+    {
+      id: 'item-003',
+      templateId: 'material_spirit_ore',
+      name: '玄鐵靈礦',
+      type: 'material',
+      quality: '上品',
+      quantity: 48,
+    },
+    {
+      id: 'item-004',
+      templateId: 'method_mist_01',
+      name: '煙霞吐納篇',
+      type: 'method',
+      quality: '良品',
+      quantity: 1,
+    },
   ],
   equipment: [
     {
@@ -243,6 +259,22 @@ const baseGameState: MockGameState = {
       attributes: ['生命 +420', '防禦 +55'],
       equipped: true,
     },
+    {
+      id: 'equipment-003',
+      name: '秋水長劍',
+      slot: '武器',
+      quality: '上品',
+      attributes: ['攻擊 +154', '命中率 +6.8%', '靈力 +90'],
+      equipped: false,
+    },
+    {
+      id: 'equipment-004',
+      name: '踏雲履',
+      slot: '鞋子',
+      quality: '極品',
+      attributes: ['速度 +72', '閃避率 +5.1%'],
+      equipped: false,
+    },
   ],
   cultivationMethods: [
     {
@@ -252,6 +284,22 @@ const baseGameState: MockGameState = {
       minimumRealm: '凝氣',
       cultivationMultiplier: 1.42,
       equipped: true,
+    },
+    {
+      templateId: 'method_mist_01',
+      name: '煙霞吐納篇',
+      quality: '良品',
+      minimumRealm: '練氣',
+      cultivationMultiplier: 1.18,
+      equipped: false,
+    },
+    {
+      templateId: 'method_future_01',
+      name: '九轉金丹錄',
+      quality: '極品',
+      minimumRealm: '金丹',
+      cultivationMultiplier: 1.88,
+      equipped: false,
     },
   ],
   skills: [
@@ -271,6 +319,22 @@ const baseGameState: MockGameState = {
       description: '提升最大靈力與回復效率。',
       equipped: true,
     },
+    {
+      templateId: 'skill_thunder_01',
+      name: '驚雷指',
+      kind: 'active',
+      spiritCost: 58,
+      description: '造成高額雷屬性傷害，冷卻 3 回合。',
+      equipped: false,
+    },
+    {
+      templateId: 'skill_guard_01',
+      name: '玄門護體',
+      kind: 'passive',
+      spiritCost: 0,
+      description: '生命低於 30% 時提高防禦。',
+      equipped: false,
+    },
   ],
   pills: [
     {
@@ -286,6 +350,20 @@ const baseGameState: MockGameState = {
       effect: '本次突破成功率 +8%',
       price: 1800,
       quantity: 1,
+    },
+    {
+      templateId: 'pill_spirit_01',
+      name: '回靈丹',
+      effect: '恢復 30% 最大靈力',
+      price: 420,
+      quantity: 3,
+    },
+    {
+      templateId: 'pill_cultivation_01',
+      name: '聚氣丹',
+      effect: '立即獲得 500 點修為',
+      price: 960,
+      quantity: 2,
     },
   ],
   cave: {
