@@ -1,9 +1,4 @@
-import {
-  useRef,
-  useState,
-  type FormEvent,
-  type RefObject,
-} from 'react'
+import { useRef, useState, type FormEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { loginUserUsecase, registerUserUsecase } from '@/domain'
 import {
@@ -39,10 +34,7 @@ export interface ILoginViewModel {
   /** 確認密碼輸入欄位 ref。 */
   confirmPasswordRef: RefObject<HTMLInputElement | null>
   /** 更新指定表單欄位。 */
-  handleFieldChange: (
-    field: keyof AuthFormValues,
-    value: string,
-  ) => void
+  handleFieldChange: (field: keyof AuthFormValues, value: string) => void
   /** 切換密碼顯示狀態。 */
   handleTogglePassword: () => void
   /** 驗證並送出登入或註冊表單。 */
@@ -84,16 +76,11 @@ const getReturnPath = (state: unknown): string => {
 export function useLoginViewModel(): ILoginViewModel {
   const location = useLocation()
   const navigate = useNavigate()
-  const mode: AuthMode =
-    location.pathname === '/register' ? 'register' : 'login'
+  const mode: AuthMode = location.pathname === '/register' ? 'register' : 'login'
   const setAuth = useAuthStore((state) => state.setAuth)
   const sessionNotice = useAuthStore((state) => state.sessionNotice)
-  const clearSessionNotice = useAuthStore(
-    (state) => state.clearSessionNotice,
-  )
-  const [values, setValues] = useState<AuthFormValues>(
-    createInitialAuthFormValues,
-  )
+  const clearSessionNotice = useAuthStore((state) => state.clearSessionNotice)
+  const [values, setValues] = useState<AuthFormValues>(createInitialAuthFormValues)
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({})
   const [notice, setNotice] = useState<AuthNotice | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -137,10 +124,7 @@ export function useLoginViewModel(): ILoginViewModel {
    * @param field - 要更新的表單欄位。
    * @param value - 欄位的新字串值。
    */
-  const handleFieldChange = (
-    field: keyof AuthFormValues,
-    value: string,
-  ): void => {
+  const handleFieldChange = (field: keyof AuthFormValues, value: string): void => {
     setValues((currentValues) => ({
       ...currentValues,
       [field]: value,
@@ -194,10 +178,10 @@ export function useLoginViewModel(): ILoginViewModel {
     })
   }
 
-  const registerMutation = useMutation(registerUserUsecase, {
+  const { mutate: registerMutation, isPending: isRegisterPending } = useMutation(registerUserUsecase, {
     onError: handleAuthError,
   })
-  const loginMutation = useMutation(loginUserUsecase, {
+  const { mutate: loginMutation, isPending: isLoginPending } = useMutation(loginUserUsecase, {
     onSuccess: (response) => {
       setAuth(response.data)
       navigate(getReturnPath(location.state), { replace: true })
@@ -206,8 +190,7 @@ export function useLoginViewModel(): ILoginViewModel {
       if (mode === 'register') {
         setNotice({
           tone: 'error',
-          message:
-            '道籍已建立，但自動登入失敗，請返回登入後重試。',
+          message: '道籍已建立，但自動登入失敗，請返回登入後重試。',
         })
         return
       }
@@ -215,8 +198,7 @@ export function useLoginViewModel(): ILoginViewModel {
       handleAuthError(error)
     },
   })
-  const isSubmitting =
-    registerMutation.isPending || loginMutation.isPending
+  const isSubmitting = isRegisterPending || isLoginPending
 
   /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
   const submitAuth = async (): Promise<void> => {
@@ -227,10 +209,10 @@ export function useLoginViewModel(): ILoginViewModel {
       }
 
       if (mode === 'register') {
-        await registerMutation.mutateAsync(input)
+        registerMutation(input)
       }
 
-      await loginMutation.mutateAsync(input)
+      loginMutation(input)
     } catch {
       return
     }
