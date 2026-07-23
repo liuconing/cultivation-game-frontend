@@ -12,9 +12,16 @@ import type {
   MockInventoryItem,
   MockPill,
 } from '@/data/gameMock'
-import { equipSkillsUsecase } from '@/domain'
-import type { EquipSkillsParams } from '@/domain/repository'
-import { useMutation } from '@/hook'
+import {
+  compareEquipmentUsecase,
+  equipEquipmentUsecase,
+  equipSkillsUsecase,
+} from '@/domain'
+import type {
+  EquipSkillsParams,
+  EquipmentInstanceParams,
+} from '@/domain/repository'
+import { useFetch, useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { uuid } from '@/lib/uuid'
 import { getOrCreateIdempotencyKey } from '../game-mutation'
@@ -26,6 +33,14 @@ interface EquipSkillsMutationParams {
   /** 同時包含主動與被動槽位的後端請求。 */
   values: EquipSkillsParams
   /** 同一次配置與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 裝備穿戴 mutation 使用的參數。 */
+interface EquipEquipmentMutationParams {
+  /** 要穿戴的裝備 instance。 */
+  values: EquipmentInstanceParams
+  /** 同一次穿戴與網路重試共用的冪等鍵。 */
   idempotencyKey: string
 }
 
@@ -82,7 +97,6 @@ function ItemSummary({
 export function LoadoutMock() {
   const {
     gameState,
-    equipEquipment,
     sellEquipment,
     equipCultivationMethod,
     buyPill,
@@ -103,6 +117,11 @@ export function LoadoutMock() {
   const [skillIdempotencyKey, setSkillIdempotencyKey] = useState<
     string | null
   >(null)
+  const [equipmentNotice, setEquipmentNotice] = useState<
+    string | null
+  >(null)
+  const [equipmentIdempotencyKey, setEquipmentIdempotencyKey] =
+    useState<string | null>(null)
 
   const equipSkillsMutation = useMutation(
     ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
@@ -145,6 +164,32 @@ export function LoadoutMock() {
   const selectedEquipment = gameState.equipment.find(
     (equipment) => equipment.id === selectedEquipmentId,
   )
+  const comparisonQuery = useFetch(
+    compareEquipmentUsecase,
+    selectedEquipmentId ?? '',
+    {
+      queryKey: ['equipment-comparison', selectedEquipmentId],
+      enabled: Boolean(selectedEquipmentId),
+      retry: 1,
+      enableGlobalError: false,
+    },
+  )
+  const equipEquipmentMutation = useMutation(
+    ({ values, idempotencyKey }: EquipEquipmentMutationParams) =>
+      equipEquipmentUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async () => {
+        setEquipmentIdempotencyKey(null)
+        setSelectedEquipmentId(null)
+        setEquipmentNotice('裝備已穿戴並同步派生屬性。')
+        await reloadGameState()
+      },
+      onError: (error) => {
+        setEquipmentNotice(getApiClientError(error).message)
+      },
+    },
+  )
   const comparedEquipment = selectedEquipment
     ? gameState.equipment.find(
         (equipment) =>
@@ -175,8 +220,19 @@ export function LoadoutMock() {
   }, [isBusy])
 
   const handleEquipEquipment = (equipment: MockEquipment) => {
-    equipEquipment(equipment.id)
-    setSelectedEquipmentId(null)
+    if (equipment.equipped || equipEquipmentMutation.isPending) {
+      return
+    }
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      equipmentIdempotencyKey,
+      uuid,
+    )
+    setEquipmentIdempotencyKey(idempotencyKey)
+    setEquipmentNotice(null)
+    equipEquipmentMutation.mutate({
+      values: { instanceId: equipment.id },
+      idempotencyKey,
+    })
   }
 
   const handleConfirm = () => {
@@ -250,6 +306,15 @@ export function LoadoutMock() {
   const renderEquipment = () => {
     return (
       <Panel eyebrow="EQUIPMENT INSTANCES" title="裝備">
+        {equipmentNotice ? (
+          <p
+            aria-live="polite"
+            className="mb-3 text-sm text-jade-100"
+            role="status"
+          >
+            {equipmentNotice}
+          </p>
+        ) : null}
         {gameState.equipment.length > 0 ? (
           <div className="grid gap-2">
             {gameState.equipment.map((equipment) => (
@@ -510,6 +575,33 @@ export function LoadoutMock() {
                   ))}
                 </ul>
               </section>
+              {comparisonQuery.isPending ? (
+                <p className="text-sm text-neutral-500" role="status">
+                  正在載入後端比較結果…
+                </p>
+              ) : comparisonQuery.isError ? (
+                <p className="text-sm text-cinnabar-100" role="alert">
+                  無法取得裝備比較，請關閉後重試。
+                </p>
+              ) : comparisonQuery.data ? (
+                <section className="rounded-md border border-gold-400/20 bg-gold-400/[0.05] p-3">
+                  <h3 className="text-sm text-gold-100">
+                    派生屬性差異
+                  </h3>
+                  <ul className="mt-2 grid grid-cols-2 gap-1 text-xs text-neutral-400">
+                    {Object.entries(
+                      comparisonQuery.data.data.statDifference,
+                    )
+                      .filter(([, value]) => value !== 0)
+                      .map(([stat, value]) => (
+                        <li key={stat}>
+                          {stat}：{value > 0 ? '+' : ''}
+                          {value}
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              ) : null}
               <section className="rounded-md border border-white/10 bg-black/20 p-3">
                 <h3 className="text-sm text-neutral-300">目前穿戴</h3>
                 {comparedEquipment ? (
@@ -546,7 +638,12 @@ export function LoadoutMock() {
                 {selectedEquipment.equipped ? '穿戴中' : '出售'}
               </Button>
               <Button
-                disabled={selectedEquipment.equipped}
+                disabled={
+                  selectedEquipment.equipped ||
+                  equipEquipmentMutation.isPending ||
+                  comparisonQuery.data?.data.canEquip === false
+                }
+                isLoading={equipEquipmentMutation.isPending}
                 onClick={() =>
                   handleEquipEquipment(selectedEquipment)
                 }
