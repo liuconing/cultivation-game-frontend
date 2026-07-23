@@ -6,7 +6,20 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router'
 import { Button, Panel, StatusBadge } from '@/components'
+import { exploreUsecase } from '@/domain'
+import type { ExplorationData } from '@/domain/repository'
+import { useMutation } from '@/hook'
+import { uuid } from '@/lib/uuid'
+import { getOrCreateIdempotencyKey } from '../game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
+
+/** 探索 mutation 使用的參數。 */
+interface ExploreMutationParams {
+  /** 玩家選擇的地圖 ID。 */
+  mapId: string
+  /** 同一次探索與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
 
 const mapStatusCopy = {
   unlocked: {
@@ -29,26 +42,42 @@ const mapStatusCopy = {
 /** UI-06 地圖、探索提交與全螢幕結果的純記憶體 Mock。 */
 export function ExploreMock() {
   const navigate = useNavigate()
-  const { gameState, resolveExploration } = useGameRuntime()
+  const { gameState, reloadGameState } = useGameRuntime()
   const [selectedMapId, setSelectedMapId] = useState(
     gameState.maps[0]?.id ?? '',
   )
-  const [isExploring, setIsExploring] = useState(false)
   const [isResultOpen, setIsResultOpen] = useState(false)
+  const [explorationResult, setExplorationResult] =
+    useState<ExplorationData | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
   const exploreTriggerRef = useRef<HTMLElement>(null)
+  const exploreKeyRef = useRef<string | null>(null)
   const selectedMap =
     gameState.maps.find((map) => map.id === selectedMapId) ??
     gameState.maps[0]
   const battle = gameState.battle
-  const isEncounter = false
+  const isEncounter = explorationResult?.eventType === 'encounter'
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
     gameState.character.spiritPower /
       gameState.character.maxSpiritPower <
       0.2
+  const exploreMutation = useMutation(
+    ({ mapId, idempotencyKey }: ExploreMutationParams) =>
+      exploreUsecase({ mapId }, { idempotencyKey }),
+    {
+      onSuccess: async (response) => {
+        exploreKeyRef.current = null
+        setExplorationResult(response.data)
+        setIsResultOpen(true)
+        await reloadGameState()
+      },
+    },
+  )
   const canExplore =
-    Boolean(selectedMap) && selectedMap?.status !== 'locked' && !isExploring
+    Boolean(selectedMap) &&
+    selectedMap?.status !== 'locked' &&
+    !exploreMutation.isPending
 
   const closeResult = useCallback(() => {
     setIsResultOpen(false)
@@ -113,12 +142,15 @@ export function ExploreMock() {
     }
 
     exploreTriggerRef.current = document.activeElement as HTMLElement | null
-    setIsExploring(true)
-    window.setTimeout(() => {
-      resolveExploration()
-      setIsExploring(false)
-      setIsResultOpen(true)
-    }, 650)
+    const idempotencyKey = getOrCreateIdempotencyKey(
+      exploreKeyRef.current,
+      uuid,
+    )
+    exploreKeyRef.current = idempotencyKey
+    exploreMutation.mutate({
+      mapId: selectedMap.id,
+      idempotencyKey,
+    })
   }
 
   const handleGoToLoadout = () => {
@@ -171,10 +203,11 @@ export function ExploreMock() {
                   </span>
                   <span className="mt-3 grid gap-1 text-xs leading-5 text-neutral-600 sm:grid-cols-2">
                     <span className="min-w-0 break-words">
-                      妖物：{map.monsters.join('、')}
+                      挑戰獎勵：×
+                      {map.challengeRewardMultiplier.toFixed(2)}
                     </span>
                     <span className="min-w-0 break-words">
-                      掉落：{map.possibleDrops.join('、')}
+                      掉落倍率：×{map.dropMultiplier.toFixed(2)}
                     </span>
                   </span>
                 </button>
@@ -220,7 +253,7 @@ export function ExploreMock() {
             <Button
               className="w-full sm:w-auto"
               disabled={!canExplore}
-              isLoading={isExploring}
+              isLoading={exploreMutation.isPending}
               onClick={handleExplore}
             >
               {selectedMap?.status === 'locked' ? '尚未解鎖' : '開始探索'}

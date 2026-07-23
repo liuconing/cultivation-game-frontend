@@ -7,12 +7,29 @@ import type {
   MockEquipment,
   MockGameState,
   MockInventoryItem,
+  MockMap,
   MockPill,
   MockSkill,
 } from '@/data/gameMock'
 
+/** 正式探索頁使用的地圖畫面模型。 */
+export interface GameViewMap extends MockMap {
+  /** 角色與建議境界之間的階級差。 */
+  realmDifference: number
+  /** 後端計算的挑戰獎勵倍率。 */
+  challengeRewardMultiplier: number
+  /** 後端計算的掉落倍率。 */
+  dropMultiplier: number
+}
+
 /** 正式遊戲畫面使用的資料模型，不包含 Mock 情境切換欄位。 */
-export type GameViewState = Omit<MockGameState, 'scenario'>
+export type GameViewState = Omit<
+  MockGameState,
+  'scenario' | 'maps'
+> & {
+  /** 後端提供的地圖狀態與倍率。 */
+  maps: GameViewMap[]
+}
 
 const genderLabels: Record<string, MockGameState['character']['gender']> = {
   male: '男',
@@ -246,6 +263,9 @@ export const createGameViewState = (
         : 'locked',
       monsters: [],
       possibleDrops: [],
+      realmDifference: map.realmDifference,
+      challengeRewardMultiplier: map.challengeRewardMultiplier,
+      dropMultiplier: map.dropMultiplier,
     })),
     battle: null,
     inventory,
