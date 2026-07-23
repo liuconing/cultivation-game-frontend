@@ -16,6 +16,7 @@ import {
   compareEquipmentUsecase,
   equipEquipmentUsecase,
   equipSkillsUsecase,
+  sellEquipmentUsecase,
 } from '@/domain'
 import type {
   EquipSkillsParams,
@@ -44,10 +45,18 @@ interface EquipEquipmentMutationParams {
   idempotencyKey: string
 }
 
+/** 裝備出售 mutation 使用的參數。 */
+interface SellEquipmentMutationParams {
+  /** 要出售的裝備 instance。 */
+  values: EquipmentInstanceParams
+  /** 同一次出售與網路重試共用的冪等鍵。 */
+  idempotencyKey: string
+}
+
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
 type InventoryFilter = 'all' | MockInventoryItem['type']
 type ConfirmAction =
-  | { kind: 'sell'; equipmentId: string }
+  | { kind: 'sell'; equipmentId: string; salePrice: number }
   | { kind: 'usePill'; templateId: string }
   | null
 
@@ -64,13 +73,6 @@ const qualityTone = {
   良品: 'jade',
   上品: 'gold',
   極品: 'cinnabar',
-} as const
-
-const equipmentSalePrice = {
-  凡品: 120,
-  良品: 360,
-  上品: 980,
-  極品: 2400,
 } as const
 
 function ItemSummary({
@@ -97,7 +99,6 @@ function ItemSummary({
 export function LoadoutMock() {
   const {
     gameState,
-    sellEquipment,
     equipCultivationMethod,
     buyPill,
     consumePill,
@@ -122,6 +123,9 @@ export function LoadoutMock() {
   >(null)
   const [equipmentIdempotencyKey, setEquipmentIdempotencyKey] =
     useState<string | null>(null)
+  const [sellIdempotencyKey, setSellIdempotencyKey] = useState<
+    string | null
+  >(null)
 
   const equipSkillsMutation = useMutation(
     ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
@@ -190,6 +194,25 @@ export function LoadoutMock() {
       },
     },
   )
+  const sellEquipmentMutation = useMutation(
+    ({ values, idempotencyKey }: SellEquipmentMutationParams) =>
+      sellEquipmentUsecase(values, { idempotencyKey }),
+    {
+      enableGlobalError: false,
+      onSuccess: async (response) => {
+        setSellIdempotencyKey(null)
+        setConfirmAction(null)
+        setSelectedEquipmentId(null)
+        setEquipmentNotice(
+          `已出售裝備並取得 ${response.data.salePrice.toLocaleString()} 靈石。`,
+        )
+        await reloadGameState()
+      },
+      onError: (error) => {
+        setEquipmentNotice(getApiClientError(error).message)
+      },
+    },
+  )
   const comparedEquipment = selectedEquipment
     ? gameState.equipment.find(
         (equipment) =>
@@ -214,10 +237,10 @@ export function LoadoutMock() {
     setIsShopOpen(false)
   }, [])
   const closeConfirm = useCallback(() => {
-    if (!isBusy) {
+    if (!isBusy && !sellEquipmentMutation.isPending) {
       setConfirmAction(null)
     }
-  }, [isBusy])
+  }, [isBusy, sellEquipmentMutation.isPending])
 
   const handleEquipEquipment = (equipment: MockEquipment) => {
     if (equipment.equipped || equipEquipmentMutation.isPending) {
@@ -236,21 +259,32 @@ export function LoadoutMock() {
   }
 
   const handleConfirm = () => {
-    if (!confirmAction || isBusy) {
+    if (
+      !confirmAction ||
+      isBusy ||
+      sellEquipmentMutation.isPending
+    ) {
       return
     }
 
-    setIsBusy(true)
-    window.setTimeout(() => {
-      if (confirmAction.kind === 'sell') {
-        sellEquipment(confirmAction.equipmentId)
-        setSelectedEquipmentId(null)
-      } else {
+    if (confirmAction.kind === 'sell') {
+      const idempotencyKey = getOrCreateIdempotencyKey(
+        sellIdempotencyKey,
+        uuid,
+      )
+      setSellIdempotencyKey(idempotencyKey)
+      sellEquipmentMutation.mutate({
+        values: { instanceId: confirmAction.equipmentId },
+        idempotencyKey,
+      })
+    } else {
+      setIsBusy(true)
+      window.setTimeout(() => {
         consumePill(confirmAction.templateId)
-      }
-      setIsBusy(false)
-      setConfirmAction(null)
-    }, 400)
+        setIsBusy(false)
+        setConfirmAction(null)
+      }, 400)
+    }
   }
 
   const renderInventory = () => {
@@ -630,6 +664,8 @@ export function LoadoutMock() {
                   setConfirmAction({
                     kind: 'sell',
                     equipmentId: selectedEquipment.id,
+                    salePrice:
+                      comparisonQuery.data?.data.salePrice ?? 0,
                   })
                   setSelectedEquipmentId(null)
                 }}
@@ -704,7 +740,7 @@ export function LoadoutMock() {
       </Drawer>
 
       <Modal
-        isBusy={isBusy}
+        isBusy={isBusy || sellEquipmentMutation.isPending}
         isOpen={confirmAction !== null}
         onClose={closeConfirm}
         title={
@@ -719,9 +755,9 @@ export function LoadoutMock() {
             </p>
             <p className="mt-2 text-gold-100">
               售價{' '}
-              {equipmentSalePrice[
-                confirmEquipment.quality
-              ].toLocaleString()}{' '}
+              {confirmAction?.kind === 'sell'
+                ? confirmAction.salePrice.toLocaleString()
+                : '0'}{' '}
               靈石
             </p>
             {confirmEquipment.quality === '上品' ||
@@ -739,11 +775,15 @@ export function LoadoutMock() {
           </>
         ) : null}
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button disabled={isBusy} onClick={closeConfirm} variant="ghost">
+          <Button
+            disabled={isBusy || sellEquipmentMutation.isPending}
+            onClick={closeConfirm}
+            variant="ghost"
+          >
             取消
           </Button>
           <Button
-            isLoading={isBusy}
+            isLoading={isBusy || sellEquipmentMutation.isPending}
             onClick={handleConfirm}
             variant={confirmEquipment ? 'danger' : 'primary'}
           >
