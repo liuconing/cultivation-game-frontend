@@ -184,7 +184,7 @@ export const createGameViewState = (
       templateId: skill.id,
       name: skill.name,
       kind: skill.type,
-      spiritCost: skill.mpCost,
+      spiritCost: skill.mpCost ?? 0,
       description: skill.description,
       equipped: skill.equipped,
     }))

@@ -86,8 +86,8 @@ export interface GameSkill {
   name: string
   /** 技能類型。 */
   type: 'active' | 'passive'
-  /** 主動技能的靈力消耗；被動技能為 0。 */
-  mpCost: number
+  /** 主動技能的靈力消耗；被動技能為 null。 */
+  mpCost: number | null
   /** 主動技能的冷卻回合；被動技能為 0。 */
   cooldownTurns: number
   /** 技能效果的中文說明。 */
