@@ -10,6 +10,7 @@
     "test:auth": "node --test scripts/auth-form.test.mjs",
     "test:error": "node --test scripts/global-error.test.mjs",
     "test:routes": "node --test scripts/route-access.test.mjs",
+    "test:character": "node --test scripts/character-create.test.mjs",
     "test:api-smoke": "node --env-file-if-exists=.env scripts/api-smoke.mjs",
     "preview": "vite preview"
   },

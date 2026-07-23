@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import { Button, StatusBadge, TextField } from '@/components'
 import {
   spiritualRootQualityLabels,
-  type CharacterCreationScenario,
 } from '@/data/characterCreationMock'
 import { bind } from '@/utils'
 import {
@@ -16,8 +15,6 @@ export function characterCreateViewController({
   values,
   errors,
   notice,
-  scenario,
-  scenarioOptions,
   genderOptions,
   spiritualRootOptions,
   result,
@@ -28,9 +25,7 @@ export function characterCreateViewController({
   handleNameChange,
   handleGenderChange,
   handleSpiritualRootChange,
-  handleScenarioChange,
   handleSubmit,
-  handleResetResult,
   handleEnterGame,
 }: ICharacterCreateViewModel) {
   const selectedRoot = spiritualRootOptions.find(
@@ -77,12 +72,12 @@ export function characterCreateViewController({
               {[
                 ['性別', resultGender?.label ?? '不公開'],
                 ['境界', '凝氣・前期'],
-                ['生命', result.maxHp],
-                ['靈力', result.maxMp],
+                ['生命', result.baseStats.maxHp],
+                ['靈力', result.baseStats.maxMp],
                 ['修為', result.cultivation],
                 ['靈石', result.spiritStones],
-                ['主動技能', '靈氣斬'],
-                ['被動技能', '凝神訣'],
+                ['主動技能', result.equippedActiveSkillId ?? '未配置'],
+                ['被動技能', result.equippedPassiveSkillId ?? '未配置'],
               ].map(([label, value]) => (
                 <div
                   className="min-w-0 rounded-md border border-white/10 bg-black/20 p-3"
@@ -99,23 +94,15 @@ export function characterCreateViewController({
             </dl>
 
             <p className="mt-5 rounded-md border border-jade-400/20 bg-jade-400/[0.06] px-4 py-3 text-sm leading-6 text-jade-100">
-              靈根品質由 Mock 結果 fixture 產生；角色表單沒有品質欄位，也不會送出此值。
+              靈根品質由後端建立角色時產生；角色表單不會送出或覆寫此值。
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6">
               <Button
                 className="w-full"
                 onClick={handleEnterGame}
-                variant="secondary"
               >
                 進入修煉
-              </Button>
-              <Button
-                className="w-full"
-                onClick={handleResetResult}
-                variant="ghost"
-              >
-                重新展示
               </Button>
             </div>
           </div>
@@ -136,7 +123,7 @@ export function characterCreateViewController({
               初入仙途
             </h1>
             <p className="mt-5 max-w-md text-sm leading-7 text-neutral-400">
-              選擇姓名、性別與靈根種類。靈根品質將在角色建立後由結果 fixture 揭示。
+              選擇姓名、性別與靈根種類。靈根品質將在角色建立後由後端結果揭示。
             </p>
           </div>
 
@@ -172,39 +159,17 @@ export function characterCreateViewController({
             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
               <div>
                 <p className="text-xs tracking-[0.18em] text-gold-200/65">
-                  CHARACTER MOCK
+                  CHARACTER CREATION
                 </p>
                 <h2 className="mt-2 font-serif text-2xl text-neutral-100">
                   建立唯一角色
                 </h2>
               </div>
-              <StatusBadge tone="jade">記憶體模式</StatusBadge>
+              <StatusBadge tone="jade">正式資料</StatusBadge>
             </div>
 
-            <label className="mt-5 block">
-              <span className="mb-2 block text-xs text-neutral-500">
-                Mock 結果情境（非角色欄位）
-              </span>
-              <select
-                className="min-h-11 w-full rounded-md border border-white/14 bg-black/30 px-3 text-sm text-neutral-100 outline-none focus:border-jade-300/70 focus:ring-2 focus:ring-jade-300/15"
-                disabled={isSubmitting}
-                onChange={(event) => {
-                  handleScenarioChange(
-                    event.target.value as CharacterCreationScenario,
-                  )
-                }}
-                value={scenario}
-              >
-                {scenarioOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
             <form
-              className="mt-5 space-y-6"
+              className="mt-6 space-y-6"
               noValidate
               onSubmit={handleSubmit}
             >
@@ -325,7 +290,7 @@ export function characterCreateViewController({
                 role="status"
               >
                 {notice ??
-                  '只會提交姓名、性別與靈根種類至記憶體 Mock。'}
+                  '只會提交姓名、性別與靈根種類；靈根品質由後端決定。'}
               </div>
 
               <Button
@@ -342,7 +307,7 @@ export function characterCreateViewController({
                 className="text-xs text-neutral-600 underline-offset-4 hover:text-neutral-400 hover:underline focus-visible:outline-2 focus-visible:outline-jade-300"
                 to="/login"
               >
-                返回登入 Mock
+                返回登入
               </Link>
             </div>
           </div>

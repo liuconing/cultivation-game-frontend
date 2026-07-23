@@ -37,6 +37,16 @@ export type CharacterCreationErrors = Partial<
   Record<keyof CharacterCreationValues, string>
 >
 
+/** `POST /characters` 允許送出的角色建立欄位。 */
+export interface CharacterCreationRequest {
+  /** 去除前後空白後的角色姓名。 */
+  name: string
+  /** 玩家選擇的角色性別。 */
+  gender: CharacterGender
+  /** 玩家選擇的靈根類型。 */
+  spiritualRootType: SpiritualRootType
+}
+
 export type MockCreatedCharacter = CharacterCreationValues & {
   id: string
   spiritualRootQuality: SpiritualRootQuality
@@ -136,6 +146,22 @@ export function validateCharacterCreation(
   }
 
   return errors
+}
+
+/**
+ * 將角色建立表單轉成後端允許的 request body。
+ *
+ * @param values - 使用者輸入的角色建立表單。
+ * @returns 不包含靈根品質等後端權威欄位的 request body。
+ */
+export function createCharacterRequest(
+  values: CharacterCreationValues,
+): CharacterCreationRequest {
+  return {
+    name: values.name.trim(),
+    gender: values.gender,
+    spiritualRootType: values.spiritualRootType,
+  }
 }
 
 /** 依成功情境產生固定且可重現的角色結果。 */

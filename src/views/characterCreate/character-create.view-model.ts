@@ -1,88 +1,99 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type RefObject,
-} from 'react'
+import { useRef, useState, type FormEvent, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
+import { createCharacterUsecase } from '@/domain'
+import type { CharacterResponse } from '@/domain/repository'
 import {
-  characterCreationScenarioOptions,
   characterGenderOptions,
-  createMockCharacter,
+  createCharacterRequest,
   spiritualRootOptions,
   validateCharacterCreation,
   type CharacterCreationErrors,
-  type CharacterCreationScenario,
   type CharacterCreationValues,
-  type MockCreatedCharacter,
 } from '@/data/characterCreationMock'
+import { useMutation } from '@/hook'
+import { getApiClientError } from '@/lib/axios'
+import { uuid } from '@/lib/uuid'
+import { useSession } from '@/session'
 
 type CharacterCreateScreen = 'form' | 'result'
 
-export interface ICharacterCreateViewModel {
-  screen: CharacterCreateScreen
+/** 建立角色 mutation 所需的完整參數。 */
+interface CreateCharacterMutationParams {
+  /** 僅包含後端允許欄位的角色建立資料。 */
   values: CharacterCreationValues
+  /** 本次建立操作固定使用的冪等鍵。 */
+  idempotencyKey: string
+}
+
+/** 角色建立畫面使用的狀態與操作。 */
+export interface ICharacterCreateViewModel {
+  /** 目前顯示表單或建立結果。 */
+  screen: CharacterCreateScreen
+  /** 使用者輸入的角色資料。 */
+  values: CharacterCreationValues
+  /** 各角色欄位的驗證錯誤。 */
   errors: CharacterCreationErrors
+  /** 建立失敗或提示訊息。 */
   notice: string | null
-  scenario: CharacterCreationScenario
-  scenarioOptions: typeof characterCreationScenarioOptions
+  /** 可選性別清單。 */
   genderOptions: typeof characterGenderOptions
+  /** 可選靈根清單。 */
   spiritualRootOptions: typeof spiritualRootOptions
-  result: MockCreatedCharacter | null
+  /** 後端建立完成的正式角色。 */
+  result: CharacterResponse | null
+  /** 是否正在送出建立請求。 */
   isSubmitting: boolean
+  /** 角色姓名輸入欄位 ref。 */
   nameRef: RefObject<HTMLInputElement | null>
+  /** 性別欄位群組 ref。 */
   genderRef: RefObject<HTMLFieldSetElement | null>
+  /** 靈根欄位群組 ref。 */
   spiritualRootRef: RefObject<HTMLFieldSetElement | null>
+  /** 更新角色姓名。 */
   handleNameChange: (name: string) => void
+  /** 更新角色性別。 */
   handleGenderChange: (
     gender: CharacterCreationValues['gender'],
   ) => void
+  /** 更新角色靈根類型。 */
   handleSpiritualRootChange: (
     spiritualRootType: CharacterCreationValues['spiritualRootType'],
   ) => void
-  handleScenarioChange: (
-    scenario: CharacterCreationScenario,
-  ) => void
+  /** 驗證並送出角色建立表單。 */
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void
-  handleResetResult: () => void
+  /** 重新同步 Session 後進入遊戲。 */
   handleEnterGame: () => void
 }
 
 const initialValues: CharacterCreationValues = {
-  name: '青玄',
+  name: '',
   gender: 'unknown',
   spiritualRootType: 'metal',
 }
 
-/** 管理角色建立與靈根結果的純記憶體 Mock。 */
+/** 管理角色建立表單、正式 API 與後端結果。 */
 export function useCharacterCreateViewModel(): ICharacterCreateViewModel {
   const navigate = useNavigate()
+  const { reloadSession } = useSession()
   const [screen, setScreen] =
     useState<CharacterCreateScreen>('form')
   const [values, setValues] =
     useState<CharacterCreationValues>(initialValues)
   const [errors, setErrors] = useState<CharacterCreationErrors>({})
   const [notice, setNotice] = useState<string | null>(null)
-  const [scenario, setScenario] =
-    useState<CharacterCreationScenario>('successMiddle')
-  const [result, setResult] =
-    useState<MockCreatedCharacter | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [result, setResult] = useState<CharacterResponse | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const genderRef = useRef<HTMLFieldSetElement>(null)
   const spiritualRootRef = useRef<HTMLFieldSetElement>(null)
-  const submitTimerRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (submitTimerRef.current !== null) {
-        window.clearTimeout(submitTimerRef.current)
-      }
-    }
-  }, [])
-
-  const focusFirstError = (fieldErrors: CharacterCreationErrors) => {
+  /**
+   * 將焦點移至第一個角色欄位錯誤。
+   *
+   * @param fieldErrors - 目前表單欄位錯誤。
+   */
+  const focusFirstError = (
+    fieldErrors: CharacterCreationErrors,
+  ): void => {
     if (fieldErrors.name) {
       nameRef.current?.focus()
     } else if (fieldErrors.gender) {
@@ -92,39 +103,42 @@ export function useCharacterCreateViewModel(): ICharacterCreateViewModel {
     }
   }
 
-  const completeMockSubmit = () => {
-    setIsSubmitting(false)
+  const createCharacterMutation = useMutation(
+    ({
+      values: requestValues,
+      idempotencyKey,
+    }: CreateCharacterMutationParams) =>
+      createCharacterUsecase(createCharacterRequest(requestValues), {
+        idempotencyKey,
+      }),
+    {
+      onSuccess: (response) => {
+        setResult(response.data.character)
+        setScreen('result')
+        setNotice(null)
+      },
+      onError: (error) => {
+        const apiError = getApiClientError(error)
+        setNotice(
+          apiError.code === 'CHARACTER_ALREADY_EXISTS'
+            ? '此帳號已建立角色，請重新載入帳號狀態後再試。'
+            : apiError.code === 'VALIDATION_ERROR'
+              ? '角色資料格式不正確，請檢查欄位後再試。'
+              : apiError.message,
+        )
+        window.requestAnimationFrame(() => nameRef.current?.focus())
+      },
+    },
+  )
 
-    if (scenario === 'validationError') {
-      const mockErrors = {
-        name: '此姓名未通過 Mock 欄位驗證。',
-      }
-      setErrors(mockErrors)
-      setNotice('角色資料有誤，請修正標示欄位。')
-      window.requestAnimationFrame(() => {
-        nameRef.current?.focus()
-      })
-      return
-    }
-
-    if (scenario === 'duplicate') {
-      setNotice('此帳號已有角色，不能重複建立。')
-      return
-    }
-
-    if (scenario === 'submitFailure') {
-      setNotice('Mock 建立失敗，輸入內容已保留，請稍後重試。')
-      return
-    }
-
-    const createdCharacter = createMockCharacter(values, scenario)
-    setResult(createdCharacter)
-    setScreen('result')
-  }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  /**
+   * 驗證並送出正式角色建立請求。
+   *
+   * @param event - React 表單送出事件。
+   */
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
-    if (isSubmitting) {
+    if (createCharacterMutation.isPending) {
       return
     }
 
@@ -137,11 +151,10 @@ export function useCharacterCreateViewModel(): ICharacterCreateViewModel {
       return
     }
 
-    setIsSubmitting(true)
-    submitTimerRef.current = window.setTimeout(
-      completeMockSubmit,
-      550,
-    )
+    createCharacterMutation.mutate({
+      values,
+      idempotencyKey: uuid(),
+    })
   }
 
   return {
@@ -149,12 +162,10 @@ export function useCharacterCreateViewModel(): ICharacterCreateViewModel {
     values,
     errors,
     notice,
-    scenario,
-    scenarioOptions: characterCreationScenarioOptions,
     genderOptions: characterGenderOptions,
     spiritualRootOptions,
     result,
-    isSubmitting,
+    isSubmitting: createCharacterMutation.isPending,
     nameRef,
     genderRef,
     spiritualRootRef,
@@ -185,15 +196,11 @@ export function useCharacterCreateViewModel(): ICharacterCreateViewModel {
       }))
       setNotice(null)
     },
-    handleScenarioChange: setScenario,
     handleSubmit,
-    handleResetResult: () => {
-      setScreen('form')
-      setResult(null)
-      setNotice(null)
-    },
     handleEnterGame: () => {
-      navigate('/game/cultivation')
+      void reloadSession().then(() => {
+        navigate('/game/cultivation', { replace: true })
+      })
     },
   }
 }
