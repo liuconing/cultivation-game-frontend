@@ -1,7 +1,6 @@
 import { useMemo, type PropsWithChildren } from 'react'
 import { useQueryClient } from '@/lib/react-query'
 import {
-  getGameStateUsecase,
   getMyCharacterUsecase,
   logoutUserUsecase,
 } from '@/domain'
@@ -16,26 +15,27 @@ import type {
   SessionStatus,
 } from './session.types'
 
-/** Session 啟動查詢使用的固定 query key 前綴。 */
-const SESSION_QUERY_KEY = 'session-bootstrap'
+/** Session 角色檢查所使用的 TanStack Query key。 */
+const sessionQueryKey = ['session-bootstrap'] as const
 
-/** Session 啟動查詢需要的參數。 */
+/** Session 角色檢查需要的參數。 */
 interface BootstrapSessionParams {
-  /** 目前登入 session 的 JWT token。 */
+  /** 目前登入憑證；同時用於隔離不同帳號的快取。 */
   token: string
 }
 
 /**
- * 依目前 token 載入角色與完整 GameState。
+ * 驗證目前 token 所屬帳號是否已有角色。
  *
- * @param params - 目前登入 session 的 token。
- * @returns 無角色或已完整載入的 session 啟動結果。
+ * @param params - 包含目前 token 的角色檢查參數。
+ * @returns 已有角色或尚未建立角色的 Session 狀態。
+ * @throws token 空白或角色 API 無法完成時保留原始錯誤。
  */
 const bootstrapSession = async ({
   token,
 }: BootstrapSessionParams): Promise<SessionBootstrapData> => {
   if (!token) {
-    throw new Error('缺少登入 token')
+    throw new Error('缺少登入憑證')
   }
 
   const characterResponse = await getMyCharacterUsecase()
@@ -43,40 +43,21 @@ const bootstrapSession = async ({
     return {
       status: 'noCharacter',
       character: null,
-      gameState: null,
     }
   }
 
-  try {
-    const gameStateResponse = await getGameStateUsecase()
-    return {
-      status: 'ready',
-      character: characterResponse.data.character,
-      gameState: gameStateResponse.data,
-    }
-  } catch (error) {
-    const apiError = getApiClientError(error)
-    if (
-      apiError.status === 404 &&
-      apiError.code === 'CHARACTER_NOT_FOUND'
-    ) {
-      return {
-        status: 'noCharacter',
-        character: null,
-        gameState: null,
-      }
-    }
-
-    throw error
+  return {
+    status: 'ready',
+    character: characterResponse.data.character,
   }
 }
 
 /**
- * 判斷 session 啟動失敗是否需要自動重試。
+ * 判斷角色檢查是否值得再嘗試一次。
  *
- * @param failureCount - 目前已失敗的次數。
- * @param error - 本次 API 錯誤。
- * @returns 是否再重試一次。
+ * @param failureCount - TanStack Query 已失敗的次數。
+ * @param error - 最後一次角色 API 錯誤。
+ * @returns 僅網路錯誤或 5xx 的第一次失敗可以重試。
  */
 const shouldRetrySession = (
   failureCount: number,
@@ -90,9 +71,13 @@ const shouldRetrySession = (
 }
 
 /**
- * 集中提供 token 還原、角色檢查與 GameState 啟動狀態。
+ * 管理登入憑證、角色存在性與登出生命週期。
  *
- * @param props - Provider 包覆的 React 子節點。
+ * @param props - Provider 內需要使用 Session 的 React 子節點。
+ * @returns 提供 Session context 的 React 節點。
+ *
+ * 登出成功或伺服器回傳 401 時會清除本機憑證；網路或 5xx
+ * 失敗則保留登入狀態，讓使用者可以安全重試。
  */
 export function SessionProvider({
   children,
@@ -106,7 +91,7 @@ export function SessionProvider({
     bootstrapSession,
     { token: token ?? '' },
     {
-      queryKey: [SESSION_QUERY_KEY, token ?? ''],
+      queryKey: [...sessionQueryKey, token ?? ''],
       enabled: hasHydrated && Boolean(token),
       staleTime: Number.POSITIVE_INFINITY,
       refetchOnWindowFocus: false,
@@ -136,7 +121,6 @@ export function SessionProvider({
       status,
       user,
       character: sessionQuery.data?.character ?? null,
-      gameState: sessionQuery.data?.gameState ?? null,
       errorMessage: sessionQuery.isError
         ? getApiClientError(sessionQuery.error).message
         : null,
@@ -162,7 +146,7 @@ export function SessionProvider({
 
         clearAuth({ reason: clearReason })
         queryClient.removeQueries({
-          queryKey: [SESSION_QUERY_KEY],
+          queryKey: sessionQueryKey,
         })
       },
     }),

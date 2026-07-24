@@ -2,7 +2,10 @@ import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { Button, Panel } from '@/components'
 import { useSession } from '@/session'
 import { CharacterCreateView } from '@/views/characterCreate'
-import { GameShellView } from '@/views/gameShell'
+import {
+  GameRuntimeProvider,
+  GameShellView,
+} from '@/views/gameShell'
 import { HomeView } from '@/views/home'
 import { LoginView } from '@/views/login'
 import { resolveRouteAccess } from './route-access'
@@ -35,7 +38,7 @@ interface SessionErrorProps {
   /** 重新執行 session 啟動查詢。 */
   onRetry: () => Promise<void>
   /** 清除登入狀態並返回登入流程。 */
-  onLogout: () => void
+  onLogout: () => Promise<void>
 }
 
 /**
@@ -65,7 +68,12 @@ const SessionError = ({
         >
           重試載入
         </Button>
-        <Button onClick={onLogout} variant="secondary">
+        <Button
+          onClick={() => {
+            void onLogout()
+          }}
+          variant="secondary"
+        >
           返回登入
         </Button>
       </div>
@@ -130,12 +138,13 @@ export function AppRouter() {
         path="/character/create"
       />
       <Route
-        element={<GameShellView />}
-        path="/game/cultivation"
+        element={
+          <GameRuntimeProvider>
+            <GameShellView />
+          </GameRuntimeProvider>
+        }
+        path="/game/*"
       />
-      <Route element={<GameShellView />} path="/game/explore" />
-      <Route element={<GameShellView />} path="/game/loadout" />
-      <Route element={<GameShellView />} path="/game/cave" />
     </Routes>
   )
 }

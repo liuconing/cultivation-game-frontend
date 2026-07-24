@@ -1,67 +1,41 @@
-import { useMemo } from 'react'
-import { getItemsUsecase } from '@/domain/usecase'
-import { useFetch } from '@/hook'
-import { useSession } from '@/session'
-import { createGameViewState } from './game-state.adapter'
+import { useContext } from 'react'
+import { GameRuntimeContext } from './game-runtime-context'
 import type { GameViewState } from './game-view-state'
 
-/** 正式遊戲頁共用的查詢快取鍵。 */
+/** `GET /game/state` 的共用 TanStack Query key。 */
+export const gameStateQueryKey = ['game-state'] as const
+
+/** V1 物品 catalog 的共用 TanStack Query key。 */
 export const itemCatalogQueryKey = ['item-catalog', 'v1'] as const
 
-/** 正式遊戲頁共用的 runtime 狀態。 */
+/** 正式遊戲頁可使用的 Runtime 介面。 */
 export interface GameRuntime {
-  /** 合併 GameState 與 catalog 後的畫面資料。 */
+  /** 後端 GameState 與 catalog 合併後的畫面模型。 */
   gameState: GameViewState
-  /** 靜態 catalog 是否仍在載入。 */
+  /** V1 catalog 是否仍在載入。 */
   isCatalogLoading: boolean
-  /** 靜態 catalog 載入失敗時的錯誤。 */
+  /** V1 catalog 最後一次載入錯誤；無錯誤時為 null。 */
   catalogError: unknown
-  /** 重新讀取 V1 靜態物品 catalog。 */
+  /** 重新讀取 V1 物品 catalog。 */
   reloadCatalog: () => Promise<void>
-  /** 重新讀取 Session 與 GameState。 */
+  /** 重新讀取目前角色的完整 GameState。 */
   reloadGameState: () => Promise<void>
 }
 
-/** 以 Session GameState 與 TanStack Query catalog 建立正式遊戲資料來源。 */
+/**
+ * 取得遊戲頁唯一的 GameState Runtime。
+ *
+ * @returns Provider 持有的 GameState 畫面模型與刷新操作。
+ * @throws 在 GameRuntimeProvider 外呼叫時拋出明確錯誤。
+ */
 export const useGameRuntime = (): GameRuntime => {
-  const { gameState, reloadSession } = useSession()
-  const catalogQuery = useFetch(
-    getItemsUsecase,
-    {},
-    {
-      queryKey: itemCatalogQueryKey,
-      staleTime: Number.POSITIVE_INFINITY,
-      retry: 1,
-    },
-  )
+  const runtime = useContext(GameRuntimeContext)
 
-  const viewState = useMemo(
-    () => {
-      if (!gameState) {
-        return null
-      }
-      return createGameViewState(
-        gameState,
-        catalogQuery.data?.data.items ?? [],
-      )
-    },
-    [catalogQuery.data, gameState],
-  )
-
-  if (!viewState) {
-    throw new Error('遊戲頁缺少已初始化的 GameState。')
+  if (!runtime) {
+    throw new Error(
+      'useGameRuntime 必須在 GameRuntimeProvider 內使用',
+    )
   }
 
-  return {
-    gameState: {
-      ...viewState,
-      isLoading: catalogQuery.isPending,
-    },
-    isCatalogLoading: catalogQuery.isPending,
-    catalogError: catalogQuery.error,
-    reloadCatalog: async () => {
-      await catalogQuery.refetch()
-    },
-    reloadGameState: reloadSession,
-  }
+  return runtime
 }
