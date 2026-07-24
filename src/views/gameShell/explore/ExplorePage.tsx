@@ -42,6 +42,9 @@ const mapStatusCopy = {
   },
 }
 
+/** 每筆戰鬥敘述顯示的間隔毫秒數。 */
+const battleLogPlaybackIntervalMs = 450
+
 /** 地圖選擇、探索提交與戰鬥結果的正式 API 頁面。 */
 export function ExplorePage() {
   const navigate = useNavigate()
@@ -55,7 +58,10 @@ export function ExplorePage() {
   const [exploreError, setExploreError] = useState<string | null>(
     null,
   )
+  const [visibleBattleLogCount, setVisibleBattleLogCount] =
+    useState(0)
   const resultRef = useRef<HTMLDivElement>(null)
+  const battleLogRef = useRef<HTMLOListElement>(null)
   const exploreTriggerRef = useRef<HTMLElement>(null)
   const exploreKeyRef = useRef<string | null>(null)
   const selectedMap =
@@ -69,6 +75,10 @@ export function ExplorePage() {
     [explorationResult],
   )
   const battle = resultView?.battle ?? null
+  const visibleBattleLog =
+    battle?.log.slice(0, visibleBattleLogCount) ?? []
+  const isBattlePlaybackComplete =
+    visibleBattleLogCount >= (battle?.log.length ?? 0)
   const isEncounter = resultView?.kind === 'event'
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
@@ -84,6 +94,11 @@ export function ExplorePage() {
         exploreKeyRef.current = null
         setExploreError(null)
         setExplorationResult(response.data)
+        setVisibleBattleLogCount(
+          response.data.eventType === 'battle'
+            ? Math.min(1, response.data.battleLog?.length ?? 0)
+            : 0,
+        )
         await reloadGameState()
         setIsResultOpen(true)
       },
@@ -99,7 +114,39 @@ export function ExplorePage() {
 
   const closeResult = useCallback(() => {
     setIsResultOpen(false)
+    setVisibleBattleLogCount(0)
   }, [])
+
+  useEffect(() => {
+    if (
+      !isResultOpen ||
+      !battle ||
+      visibleBattleLogCount >= battle.log.length
+    ) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setVisibleBattleLogCount((currentCount) =>
+        Math.min(currentCount + 1, battle.log.length),
+      )
+    }, battleLogPlaybackIntervalMs)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [battle, isResultOpen, visibleBattleLogCount])
+
+  useEffect(() => {
+    if (!isResultOpen || !battleLogRef.current) {
+      return
+    }
+
+    battleLogRef.current.scrollTo({
+      behavior: 'smooth',
+      top: battleLogRef.current.scrollHeight,
+    })
+  }, [isResultOpen, visibleBattleLogCount])
 
   useEffect(() => {
     if (!isResultOpen) {
@@ -363,19 +410,72 @@ export function ExplorePage() {
             ) : (
               <div className="grid flex-1 gap-4 py-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.7fr)]">
                 <section className="min-w-0 rounded-lg border border-white/12 bg-ink-900/70 p-4 sm:p-5">
-                  <p className="text-sm text-gold-100">
-                    {battle?.firstStrike}
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="font-serif text-lg text-neutral-100">
+                        戰鬥推演
+                      </h3>
+                      <p
+                        aria-live="polite"
+                        className="mt-1 text-xs text-neutral-500"
+                        role="status"
+                      >
+                        {isBattlePlaybackComplete
+                          ? `推演完成，共 ${battle?.log.length ?? 0} 次行動`
+                          : `推演中・${visibleBattleLogCount}／${battle?.log.length ?? 0}`}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      tone={
+                        isBattlePlaybackComplete ? 'jade' : 'gold'
+                      }
+                    >
+                      {isBattlePlaybackComplete ? '已結算' : '進行中'}
+                    </StatusBadge>
+                  </div>
                   <ol
+                    aria-live="polite"
                     aria-label={`${battle?.rounds ?? 0} 回合戰鬥紀錄`}
+                    aria-relevant="additions"
                     className="mt-4 max-h-[48vh] space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm leading-6"
+                    ref={battleLogRef}
+                    role="log"
                   >
-                    {battle?.log.map((entry, index) => (
+                    {visibleBattleLog.map((entry, index) => (
                       <li
                         className="break-words rounded border border-white/[0.07] bg-black/15 px-3 py-2 text-neutral-400"
-                        key={`${battle.id}-${index}`}
+                        key={`${battle?.id ?? 'battle'}-${index}`}
                       >
-                        {entry}
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="text-gold-100">
+                            第 {entry.round} 回合
+                          </span>
+                          <span
+                            className={
+                              entry.hit
+                                ? 'text-jade-100'
+                                : 'text-neutral-500'
+                            }
+                          >
+                            {entry.hit ? '命中' : '閃避'}
+                          </span>
+                          {entry.critical ? (
+                            <span className="text-cinnabar-100">
+                              暴擊
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-neutral-300">
+                          {entry.message}
+                        </p>
+                        <p className="mt-1 text-xs tabular-nums text-neutral-600">
+                          {entry.hit
+                            ? `造成 ${entry.damage.toLocaleString()} 點傷害`
+                            : '本次未造成傷害'}
+                          {' ・ '}
+                          目標剩餘生命{' '}
+                          {entry.targetHp.toLocaleString()}
+                        </p>
                       </li>
                     ))}
                   </ol>

@@ -52,6 +52,22 @@ export interface GameViewMap {
   dropMultiplier: number
 }
 
+/** 正式探索結果顯示的單次戰鬥行動。 */
+export interface GameViewBattleLogEntry {
+  /** 發生行動的回合。 */
+  round: number
+  /** 後端產生的戰鬥敘述。 */
+  message: string
+  /** 本次行動是否命中。 */
+  hit: boolean
+  /** 本次命中是否為暴擊。 */
+  critical: boolean
+  /** 本次行動造成的傷害。 */
+  damage: number
+  /** 行動結束後目標剩餘生命。 */
+  targetHp: number
+}
+
 /** 正式探索結果顯示的戰鬥摘要。 */
 export interface GameViewBattle {
   /** 戰鬥結果唯一識別碼。 */
@@ -60,8 +76,8 @@ export interface GameViewBattle {
   result: 'victory' | 'defeat' | 'turn-limit'
   /** 戰鬥總回合數。 */
   rounds: number
-  /** 後端戰鬥紀錄顯示文字。 */
-  log: string[]
+  /** 後端結算的逐次戰鬥行動。 */
+  log: GameViewBattleLogEntry[]
   /** 後端獎勵顯示文字。 */
   rewards: string[]
   /** 結果標題。 */

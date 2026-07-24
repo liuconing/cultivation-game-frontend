@@ -51,7 +51,16 @@ test('戰鬥 DTO 會轉成既有結果層並保留後端訊息', () => {
 
   assert.equal(view.kind, 'battle')
   assert.equal(view.battle?.result, 'victory')
-  assert.deepEqual(view.battle?.log, ['命中對手。'])
+  assert.deepEqual(view.battle?.log, [
+    {
+      round: 1,
+      message: '命中對手。',
+      hit: true,
+      critical: false,
+      damage: 10,
+      targetHp: 0,
+    },
+  ])
 })
 
 test('非戰鬥事件會安全降級而不建立假戰鬥', () => {
