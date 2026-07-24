@@ -73,6 +73,31 @@ const rootQualityLabels: Record<string, string> = {
   heaven: '天品',
 }
 
+const rootUpgradeUnavailableReasonLabels: Record<string, string> = {
+  INSUFFICIENT_SPIRITUAL_ROOT_ESSENCE:
+    '靈根精華不足，無法提升靈根品質。',
+  SPIRITUAL_ROOT_MAX_QUALITY: '靈根品質已達天品。',
+}
+
+/**
+ * 將後端靈根升級原因碼轉成玩家可讀的中文訊息。
+ *
+ * @param reason - 後端回傳的穩定原因碼。
+ * @returns 中文原因；沒有原因時回傳 null。
+ */
+export const getRootUpgradeUnavailableReasonLabel = (
+  reason: string | null,
+): string | null => {
+  if (!reason) {
+    return null
+  }
+
+  return (
+    rootUpgradeUnavailableReasonLabels[reason] ??
+    '目前無法提升靈根品質。'
+  )
+}
+
 const itemTypeByCategory: Record<
   ItemCatalogResponse['category'],
   GameViewInventoryItem['type']
@@ -314,7 +339,9 @@ export const createGameViewState = (
       canUpgradeRoot:
         gameState.spiritualRootUpgradePreview.canUpgrade,
       rootUpgradeUnavailableReason:
-        gameState.spiritualRootUpgradePreview.unavailableReason,
+        getRootUpgradeUnavailableReasonLabel(
+          gameState.spiritualRootUpgradePreview.unavailableReason,
+        ),
     },
     isLoading: false,
   }

@@ -161,8 +161,8 @@ export function gameShellViewController({
               </div>
             </div>
 
-            <div className="grid min-w-0 grid-cols-[1.35fr_1fr_1fr] gap-1.5 sm:gap-2">
-              <div className="min-w-0 rounded-md border border-white/10 bg-black/20 px-2.5 py-1.5">
+            <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:grid-cols-[1.35fr_0.75fr_0.75fr_0.75fr] sm:gap-2">
+              <div className="col-span-3 min-w-0 rounded-md border border-white/10 bg-black/20 px-2.5 py-1.5 sm:col-span-1">
                 <div className="flex items-center justify-between gap-2 text-[0.65rem]">
                   <span className="truncate text-neutral-500">修為</span>
                   <span className="shrink-0 tabular-nums text-gold-100">
@@ -194,9 +194,16 @@ export function gameShellViewController({
               </div>
 
               <div className="min-w-0 rounded-md border border-jade-400/18 bg-jade-400/[0.06] px-2.5 py-1.5 text-[0.65rem]">
-                <span className="block truncate text-neutral-500">靈力・靈石</span>
+                <span className="block truncate text-neutral-500">靈力</span>
                 <span className="block truncate tabular-nums text-jade-100">
-                  {formatCompactNumber(character.spiritPower)}・
+                  {formatCompactNumber(character.spiritPower)}／
+                  {formatCompactNumber(character.maxSpiritPower)}
+                </span>
+              </div>
+
+              <div className="min-w-0 rounded-md border border-gold-400/18 bg-gold-400/[0.06] px-2.5 py-1.5 text-[0.65rem]">
+                <span className="block truncate text-neutral-500">靈石</span>
+                <span className="block truncate tabular-nums text-gold-100">
                   {formatCompactNumber(character.spiritStones)}
                 </span>
               </div>
