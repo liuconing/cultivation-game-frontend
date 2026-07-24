@@ -30,6 +30,10 @@ export interface GameEquipmentInstance {
 
 /** 洞府自然休養與立即完成的預覽。 */
 export interface RestPreview {
+  /** 生命每分鐘恢復的最大值百分比。 */
+  healthRecoveryPercentPerMinute: number
+  /** 靈力每分鐘恢復的最大值百分比。 */
+  spiritRecoveryPercentPerMinute: number
   /** 套用自然恢復後的目前生命。 */
   currentHp: number
   /** 套用自然恢復後的目前靈力。 */
@@ -40,6 +44,14 @@ export interface RestPreview {
   maxMp: number
   /** 是否已經完全恢復。 */
   isFullyRestored: boolean
+  /** 依伺服器時間推算的生命剩餘恢復秒數。 */
+  healthSecondsToFull: number
+  /** 依伺服器時間推算的靈力剩餘恢復秒數。 */
+  spiritSecondsToFull: number
+  /** 預計生命完全恢復的 ISO 時間；已回滿時為 null。 */
+  healthFullyRestoredAt: IsoDateString | null
+  /** 預計靈力完全恢復的 ISO 時間；已回滿時為 null。 */
+  spiritFullyRestoredAt: IsoDateString | null
   /** 依伺服器時間推算的剩餘恢復秒數。 */
   secondsToFull: number
   /** 預計完全恢復的 ISO 時間；已回滿時為 null。 */

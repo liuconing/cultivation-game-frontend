@@ -1,8 +1,10 @@
 import type {
   GameStateData,
   ItemCatalogResponse,
+  RestPreview,
 } from '@/domain/repository'
 import type {
+  GameViewCaveState,
   GameViewCultivationMethod,
   GameViewEquipment,
   GameViewInventoryItem,
@@ -97,6 +99,26 @@ export const getRootUpgradeUnavailableReasonLabel = (
     '目前無法提升靈根品質。'
   )
 }
+
+/**
+ * 將後端休養預覽轉成洞府使用的獨立恢復倒數。
+ *
+ * @param restPreview - 後端權威的生命與靈力恢復預覽。
+ * @returns 洞府畫面使用的恢復狀態。
+ */
+export const createGameViewCaveState = (
+  restPreview: RestPreview,
+): GameViewCaveState => ({
+  healthRecoveryPercentPerMinute:
+    restPreview.healthRecoveryPercentPerMinute,
+  spiritRecoveryPercentPerMinute:
+    restPreview.spiritRecoveryPercentPerMinute,
+  healthSecondsToFull: restPreview.healthSecondsToFull,
+  spiritSecondsToFull: restPreview.spiritSecondsToFull,
+  healthFullyRestoredAt: restPreview.healthFullyRestoredAt,
+  spiritFullyRestoredAt: restPreview.spiritFullyRestoredAt,
+  finishNowCost: restPreview.instantCompleteCost,
+})
 
 const itemTypeByCategory: Record<
   ItemCatalogResponse['category'],
@@ -301,13 +323,7 @@ export const createGameViewState = (
     cultivationMethods,
     skills,
     pills,
-    cave: {
-      recoveryPercentPerMinute: 5,
-      minutesToFull: Math.ceil(
-        gameState.restPreview.secondsToFull / 60,
-      ),
-      finishNowCost: gameState.restPreview.instantCompleteCost,
-    },
+    cave: createGameViewCaveState(gameState.restPreview),
     cultivationState: {
       idleMinutes: Math.floor(
         gameState.cultivationPreview.claimableSeconds / 60,

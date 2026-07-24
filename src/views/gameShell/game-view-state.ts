@@ -188,10 +188,18 @@ export interface GameViewPill {
 
 /** 正式洞府休養畫面資料。 */
 export interface GameViewCaveState {
-  /** 每分鐘恢復百分比。 */
-  recoveryPercentPerMinute: number
-  /** 後端預估完全恢復分鐘數。 */
-  minutesToFull: number
+  /** 生命每分鐘恢復百分比。 */
+  healthRecoveryPercentPerMinute: number
+  /** 靈力每分鐘恢復百分比。 */
+  spiritRecoveryPercentPerMinute: number
+  /** 後端預估生命完全恢復秒數。 */
+  healthSecondsToFull: number
+  /** 後端預估靈力完全恢復秒數。 */
+  spiritSecondsToFull: number
+  /** 預計生命完全恢復時間，用於辨識新的倒數。 */
+  healthFullyRestoredAt: string | null
+  /** 預計靈力完全恢復時間，用於辨識新的倒數。 */
+  spiritFullyRestoredAt: string | null
   /** 靈石立即完成費用。 */
   finishNowCost: number
 }

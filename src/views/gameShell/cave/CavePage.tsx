@@ -19,6 +19,16 @@ interface CompleteRestMutationParams {
   idempotencyKey: string
 }
 
+/** 洞府畫面同步遞減的生命與靈力倒數。 */
+interface RecoveryCountdown {
+  /** 用來辨識後端是否回傳新一輪休養預覽。 */
+  source: string
+  /** 生命剩餘恢復秒數。 */
+  healthSeconds: number
+  /** 靈力剩餘恢復秒數。 */
+  spiritSeconds: number
+}
+
 /** 將剩餘秒數轉成畫面用的分鐘數。 */
 const secondsToMinutes = (seconds: number): number =>
   Math.max(0, Math.ceil(seconds / 60))
@@ -30,35 +40,67 @@ export function CavePage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [errorNotice, setErrorNotice] = useState<string | null>(null)
-  const countdownSource = cave.minutesToFull
-  const [countdown, setCountdown] = useState({
+  const countdownSource = `${cave.healthFullyRestoredAt ?? 'health-full'}|${cave.spiritFullyRestoredAt ?? 'spirit-full'}`
+  const [countdown, setCountdown] = useState<RecoveryCountdown>({
     source: countdownSource,
-    seconds: cave.minutesToFull * 60,
+    healthSeconds: cave.healthSecondsToFull,
+    spiritSeconds: cave.spiritSecondsToFull,
   })
   const completeKeyRef = useRef<string | null>(null)
+  const syncedCountdownRef = useRef<string | null>(null)
 
   if (countdown.source !== countdownSource) {
     setCountdown({
       source: countdownSource,
-      seconds: cave.minutesToFull * 60,
+      healthSeconds: cave.healthSecondsToFull,
+      spiritSeconds: cave.spiritSecondsToFull,
     })
   }
 
-  const remainingSeconds = countdown.seconds
+  const healthRemainingSeconds = countdown.healthSeconds
+  const spiritRemainingSeconds = countdown.spiritSeconds
+  const hasRemainingRecovery =
+    healthRemainingSeconds > 0 || spiritRemainingSeconds > 0
 
   useEffect(() => {
-    if (remainingSeconds <= 0) {
+    if (!hasRemainingRecovery) {
       return
     }
 
     const timer = window.setInterval(() => {
       setCountdown((current) => ({
         ...current,
-        seconds: Math.max(0, current.seconds - 1),
+        healthSeconds: Math.max(0, current.healthSeconds - 1),
+        spiritSeconds: Math.max(0, current.spiritSeconds - 1),
       }))
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [remainingSeconds])
+  }, [hasRemainingRecovery])
+
+  useEffect(() => {
+    const characterNeedsSync =
+      character.health < character.maxHealth ||
+      character.spiritPower < character.maxSpiritPower
+
+    if (
+      hasRemainingRecovery ||
+      !characterNeedsSync ||
+      syncedCountdownRef.current === countdown.source
+    ) {
+      return
+    }
+
+    syncedCountdownRef.current = countdown.source
+    void reloadGameState()
+  }, [
+    character.health,
+    character.maxHealth,
+    character.maxSpiritPower,
+    character.spiritPower,
+    countdown.source,
+    hasRemainingRecovery,
+    reloadGameState,
+  ])
 
   const completeMutation = useMutation(
     ({ idempotencyKey }: CompleteRestMutationParams) =>
@@ -80,9 +122,9 @@ export function CavePage() {
     },
   )
 
-  const isFull =
-    character.health >= character.maxHealth &&
-    character.spiritPower >= character.maxSpiritPower
+  const isHealthFull = healthRemainingSeconds === 0
+  const isSpiritFull = spiritRemainingSeconds === 0
+  const isFull = isHealthFull && isSpiritFull
   const hasEnoughStones =
     character.spiritStones >= cave.finishNowCost
   const canFinishNow =
@@ -117,24 +159,47 @@ export function CavePage() {
             <StatusBadge tone={isFull ? 'jade' : 'neutral'}>
               {isFull ? '生命與靈力已回滿' : '自然恢復中'}
             </StatusBadge>
-            <StatusBadge tone="neutral">
-              預計剩餘 {secondsToMinutes(remainingSeconds)} 分鐘
-            </StatusBadge>
           </div>
 
           <div className="mt-6 grid gap-6">
-            <ProgressBar
-              label="生命"
-              max={character.maxHealth}
-              tone="cinnabar"
-              value={character.health}
-            />
-            <ProgressBar
-              label="靈力"
-              max={character.maxSpiritPower}
-              tone="jade"
-              value={character.spiritPower}
-            />
+            <div className="grid gap-2">
+              <ProgressBar
+                label="生命"
+                max={character.maxHealth}
+                tone="cinnabar"
+                value={character.health}
+              />
+              <p className="flex flex-wrap justify-between gap-2 text-xs">
+                <span className="text-neutral-500">
+                  每分鐘恢復{' '}
+                  {cave.healthRecoveryPercentPerMinute.toLocaleString()}%
+                </span>
+                <strong className="font-medium text-cinnabar-100">
+                  {isHealthFull
+                    ? '生命已回滿'
+                    : `剩餘 ${secondsToMinutes(healthRemainingSeconds)} 分鐘`}
+                </strong>
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <ProgressBar
+                label="靈力"
+                max={character.maxSpiritPower}
+                tone="jade"
+                value={character.spiritPower}
+              />
+              <p className="flex flex-wrap justify-between gap-2 text-xs">
+                <span className="text-neutral-500">
+                  每分鐘恢復{' '}
+                  {cave.spiritRecoveryPercentPerMinute.toLocaleString()}%
+                </span>
+                <strong className="font-medium text-jade-100">
+                  {isSpiritFull
+                    ? '靈力已回滿'
+                    : `剩餘 ${secondsToMinutes(spiritRemainingSeconds)} 分鐘`}
+                </strong>
+              </p>
+            </div>
           </div>
 
           <p className="mt-5 rounded-md border border-white/10 bg-black/15 px-4 py-3 text-sm text-neutral-400">
