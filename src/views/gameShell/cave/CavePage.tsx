@@ -7,17 +7,12 @@ import {
   StatusBadge,
 } from '@/components'
 import { completeRestUsecase } from '@/domain'
-import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
-import { uuid } from '@/lib/uuid'
-import { getOrCreateIdempotencyKey } from '../game-mutation'
+import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 
-/** 洞府立即完成 mutation 使用的參數。 */
-interface CompleteRestMutationParams {
-  /** 同一次操作與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
+/** 洞府立即完成不需要額外 request body。 */
+type CompleteRestIntent = Record<string, never>
 
 /** 洞府畫面同步遞減的生命與靈力倒數。 */
 interface RecoveryCountdown {
@@ -46,7 +41,6 @@ export function CavePage() {
     healthSeconds: cave.healthSecondsToFull,
     spiritSeconds: cave.spiritSecondsToFull,
   })
-  const completeKeyRef = useRef<string | null>(null)
   const syncedCountdownRef = useRef<string | null>(null)
 
   if (countdown.source !== countdownSource) {
@@ -102,25 +96,25 @@ export function CavePage() {
     reloadGameState,
   ])
 
-  const completeMutation = useMutation(
-    ({ idempotencyKey }: CompleteRestMutationParams) =>
-      completeRestUsecase({ idempotencyKey }),
-    {
+  const completeMutation = useGameMutation<
+    CompleteRestIntent,
+    Awaited<ReturnType<typeof completeRestUsecase>>
+  >({
+      operation: 'complete-rest',
+      request: (_intent, { idempotencyKey }) =>
+        completeRestUsecase({ idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        completeKeyRef.current = null
+      onSuccess: (response) => {
         setIsConfirmOpen(false)
         setErrorNotice(null)
         setNotice(
           `休養完成，已消耗 ${response.data.cost.toLocaleString()} 靈石。`,
         )
-        await reloadGameState()
       },
       onError: (error) => {
         setErrorNotice(getApiClientError(error).message)
       },
-    },
-  )
+    })
 
   const isHealthFull = healthRemainingSeconds === 0
   const isSpiritFull = spiritRemainingSeconds === 0
@@ -133,22 +127,18 @@ export function CavePage() {
   const closeConfirm = useCallback(() => {
     if (!completeMutation.isPending) {
       setIsConfirmOpen(false)
+      completeMutation.cancelIntent()
     }
-  }, [completeMutation.isPending])
+  }, [completeMutation])
 
   /** 提交洞府立即完成，重試時沿用相同冪等鍵。 */
   const handleConfirmFinish = (): void => {
     if (!canFinishNow) {
       return
     }
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      completeKeyRef.current,
-      uuid,
-    )
-    completeKeyRef.current = idempotencyKey
     setNotice(null)
     setErrorNotice(null)
-    completeMutation.mutate({ idempotencyKey })
+    completeMutation.execute({})
   }
 
   return (

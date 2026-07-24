@@ -10,6 +10,8 @@ const architectureFiles = [
   'session/SessionProvider.tsx',
   'session/session.types.ts',
   'views/gameShell/GameRuntimeProvider.tsx',
+  'views/gameShell/game-mutation.ts',
+  'views/gameShell/use-game-mutation.ts',
   'views/gameShell/use-game-runtime.ts',
 ]
 

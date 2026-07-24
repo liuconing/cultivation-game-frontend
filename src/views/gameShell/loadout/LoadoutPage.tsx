@@ -24,64 +24,15 @@ import type {
   PurchasePillParams,
   UsePillParams,
 } from '@/domain/repository'
-import { useFetch, useMutation } from '@/hook'
+import { useFetch } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
-import { uuid } from '@/lib/uuid'
-import { getOrCreateIdempotencyKey } from '../game-mutation'
 import type {
   GameViewEquipment,
   GameViewInventoryItem,
 } from '../game-view-state'
+import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 import { createEquipSkillsParams } from './loadout-actions'
-
-/** 技能配置 mutation 使用的參數。 */
-interface EquipSkillsMutationParams {
-  /** 同時包含主動與被動槽位的後端請求。 */
-  values: EquipSkillsParams
-  /** 同一次配置與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 裝備穿戴 mutation 使用的參數。 */
-interface EquipEquipmentMutationParams {
-  /** 要穿戴的裝備 instance。 */
-  values: EquipmentInstanceParams
-  /** 同一次穿戴與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 功法配置 mutation 使用的參數。 */
-interface EquipCultivationMethodMutationParams {
-  /** 玩家要裝備的後端功法模板。 */
-  values: EquipCultivationMethodParams
-  /** 同一次配置與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 裝備出售 mutation 使用的參數。 */
-interface SellEquipmentMutationParams {
-  /** 要出售的裝備 instance。 */
-  values: EquipmentInstanceParams
-  /** 同一次出售與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 丹藥購買 mutation 使用的參數。 */
-interface PurchasePillMutationParams {
-  /** 後端允許的購買品項與數量。 */
-  values: PurchasePillParams
-  /** 同一次購買與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 丹藥使用 mutation 使用的參數。 */
-interface UsePillMutationParams {
-  /** 後端允許使用的丹藥模板。 */
-  values: UsePillParams
-  /** 同一次使用與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
 
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
 type InventoryFilter = 'all' | GameViewInventoryItem['type']
@@ -127,7 +78,7 @@ function ItemSummary({
 
 /** 背包、裝備、功法、技能與丹藥的正式 API 頁面。 */
 export function LoadoutPage() {
-  const { gameState, reloadGameState } = useGameRuntime()
+  const { gameState } = useGameRuntime()
   const [activeTab, setActiveTab] = useState<LoadoutTab>('inventory')
   const [inventoryFilter, setInventoryFilter] =
     useState<InventoryFilter>('all')
@@ -139,41 +90,18 @@ export function LoadoutPage() {
     useState<ConfirmAction>(null)
   const [skillNotice, setSkillNotice] = useState<string | null>(null)
   const [skillError, setSkillError] = useState<string | null>(null)
-  const [skillIdempotencyKey, setSkillIdempotencyKey] = useState<
-    string | null
-  >(null)
   const [equipmentNotice, setEquipmentNotice] = useState<
     string | null
   >(null)
   const [equipmentError, setEquipmentError] = useState<
     string | null
   >(null)
-  const [equipmentIdempotencyKey, setEquipmentIdempotencyKey] =
-    useState<string | null>(null)
-  const [sellIdempotencyKey, setSellIdempotencyKey] = useState<
-    string | null
-  >(null)
   const [methodNotice, setMethodNotice] = useState<string | null>(
     null,
   )
   const [methodError, setMethodError] = useState<string | null>(null)
-  const [methodIdempotency, setMethodIdempotency] = useState<{
-    /** 冪等鍵所屬的功法模板 ID。 */
-    templateId: string
-    /** 同一次配置與重試共用的冪等鍵。 */
-    key: string
-  } | null>(null)
   const [pillNotice, setPillNotice] = useState<string | null>(null)
   const [pillError, setPillError] = useState<string | null>(null)
-  const [purchaseIdempotency, setPurchaseIdempotency] = useState<{
-    /** 冪等鍵所屬的丹藥模板 ID。 */
-    templateId: string
-    /** 同一次購買與重試共用的冪等鍵。 */
-    key: string
-  } | null>(null)
-  const [usePillIdempotencyKey, setUsePillIdempotencyKey] = useState<
-    string | null
-  >(null)
 
   const shopPillsQuery = useFetch(
     getShopPillsUsecase,
@@ -186,64 +114,53 @@ export function LoadoutPage() {
     },
   )
 
-  const equipMethodMutation = useMutation(
-    (
-      {
-        values,
-        idempotencyKey,
-      }: EquipCultivationMethodMutationParams,
-    ) =>
-      equipCultivationMethodUsecase(values, { idempotencyKey }),
-    {
+  const equipMethodMutation = useGameMutation<
+    EquipCultivationMethodParams,
+    Awaited<ReturnType<typeof equipCultivationMethodUsecase>>
+  >({
+      operation: 'equip-cultivation-method',
+      request: (intent, { idempotencyKey }) =>
+        equipCultivationMethodUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        setMethodIdempotency(null)
+      onSuccess: (response) => {
         setMethodError(null)
         setMethodNotice(
           `功法已裝備：修煉倍率 × ${response.data.cultivationMultiplier}，突破加成 +${response.data.breakthroughBonus}%。`,
         )
-        await reloadGameState()
       },
       onError: (error) => {
         setMethodError(getApiClientError(error).message)
       },
-    },
-  )
+    })
 
   /** 裝備玩家持有且符合境界的 V1 功法。 */
   const handleEquipMethod = (templateId: string): void => {
     if (equipMethodMutation.isPending) {
       return
     }
-    const idempotencyKey =
-      methodIdempotency?.templateId === templateId
-        ? methodIdempotency.key
-        : uuid()
-    setMethodIdempotency({ templateId, key: idempotencyKey })
     setMethodNotice(null)
     setMethodError(null)
-    equipMethodMutation.mutate({
-      values: { cultivationMethodTemplateId: templateId },
-      idempotencyKey,
+    equipMethodMutation.execute({
+      cultivationMethodTemplateId: templateId,
     })
   }
 
-  const equipSkillsMutation = useMutation(
-    ({ values, idempotencyKey }: EquipSkillsMutationParams) =>
-      equipSkillsUsecase(values, { idempotencyKey }),
-    {
+  const equipSkillsMutation = useGameMutation<
+    EquipSkillsParams,
+    Awaited<ReturnType<typeof equipSkillsUsecase>>
+  >({
+      operation: 'equip-skills',
+      request: (intent, { idempotencyKey }) =>
+        equipSkillsUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async () => {
-        setSkillIdempotencyKey(null)
+      onSuccess: () => {
         setSkillError(null)
         setSkillNotice('技能配置已同步。')
-        await reloadGameState()
       },
       onError: (error) => {
         setSkillError(getApiClientError(error).message)
       },
-    },
-  )
+    })
 
   /** 配置單一技能時連同另一個既有槽位一併提交。 */
   const handleEquipSkill = (templateId: string): void => {
@@ -258,14 +175,9 @@ export function LoadoutPage() {
       setSkillError('主動與被動技能各需至少持有一項。')
       return
     }
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      skillIdempotencyKey,
-      uuid,
-    )
-    setSkillIdempotencyKey(idempotencyKey)
     setSkillNotice(null)
     setSkillError(null)
-    equipSkillsMutation.mutate({ values, idempotencyKey })
+    equipSkillsMutation.execute(values)
   }
 
   const selectedEquipment = gameState.equipment.find(
@@ -281,83 +193,83 @@ export function LoadoutPage() {
       enableGlobalError: false,
     },
   )
-  const equipEquipmentMutation = useMutation(
-    ({ values, idempotencyKey }: EquipEquipmentMutationParams) =>
-      equipEquipmentUsecase(values, { idempotencyKey }),
-    {
+  const equipEquipmentMutation = useGameMutation<
+    EquipmentInstanceParams,
+    Awaited<ReturnType<typeof equipEquipmentUsecase>>
+  >({
+      operation: 'equip-equipment',
+      request: (intent, { idempotencyKey }) =>
+        equipEquipmentUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async () => {
-        setEquipmentIdempotencyKey(null)
+      onSuccess: () => {
         setSelectedEquipmentId(null)
         setEquipmentError(null)
         setEquipmentNotice('裝備已穿戴並同步派生屬性。')
-        await reloadGameState()
       },
       onError: (error) => {
         setEquipmentError(getApiClientError(error).message)
       },
-    },
-  )
-  const sellEquipmentMutation = useMutation(
-    ({ values, idempotencyKey }: SellEquipmentMutationParams) =>
-      sellEquipmentUsecase(values, { idempotencyKey }),
-    {
+    })
+  const sellEquipmentMutation = useGameMutation<
+    EquipmentInstanceParams,
+    Awaited<ReturnType<typeof sellEquipmentUsecase>>
+  >({
+      operation: 'sell-equipment',
+      request: (intent, { idempotencyKey }) =>
+        sellEquipmentUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        setSellIdempotencyKey(null)
+      onSuccess: (response) => {
         setConfirmAction(null)
         setSelectedEquipmentId(null)
         setEquipmentError(null)
         setEquipmentNotice(
           `已出售裝備並取得 ${response.data.salePrice.toLocaleString()} 靈石。`,
         )
-        await reloadGameState()
       },
       onError: (error) => {
         setEquipmentError(getApiClientError(error).message)
       },
-    },
-  )
-  const purchasePillMutation = useMutation(
-    ({ values, idempotencyKey }: PurchasePillMutationParams) =>
-      purchasePillUsecase(values, { idempotencyKey }),
-    {
+    })
+  const purchasePillMutation = useGameMutation<
+    PurchasePillParams,
+    Awaited<ReturnType<typeof purchasePillUsecase>>
+  >({
+      operation: 'purchase-pill',
+      request: (intent, { idempotencyKey }) =>
+        purchasePillUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        setPurchaseIdempotency(null)
+      onSuccess: (response) => {
         setPillError(null)
         setPillNotice(
           `已購買 ${response.data.quantityPurchased.toLocaleString()} 枚丹藥，支付 ${response.data.totalPrice.toLocaleString()} 靈石。`,
         )
-        await Promise.all([
-          reloadGameState(),
-          shopPillsQuery.refetch(),
-        ])
+      },
+      synchronize: async () => {
+        await shopPillsQuery.refetch()
       },
       onError: (error) => {
         setPillError(getApiClientError(error).message)
       },
-    },
-  )
-  const usePillMutation = useMutation(
-    ({ values, idempotencyKey }: UsePillMutationParams) =>
-      consumePillUsecase(values, { idempotencyKey }),
-    {
+    })
+  const usePillMutation = useGameMutation<
+    UsePillParams,
+    Awaited<ReturnType<typeof consumePillUsecase>>
+  >({
+      operation: 'use-pill',
+      request: (intent, { idempotencyKey }) =>
+        consumePillUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        setUsePillIdempotencyKey(null)
+      onSuccess: (response) => {
         setConfirmAction(null)
         setPillError(null)
         setPillNotice(
           `已使用丹藥；生命 ${response.data.before.currentHp} → ${response.data.after.currentHp}，靈力 ${response.data.before.currentMp} → ${response.data.after.currentMp}，修為 ${response.data.before.cultivation.toLocaleString()} → ${response.data.after.cultivation.toLocaleString()}。`,
         )
-        await reloadGameState()
       },
       onError: (error) => {
         setPillError(getApiClientError(error).message)
       },
-    },
-  )
+    })
   const comparedEquipment = selectedEquipment
     ? gameState.equipment.find(
         (equipment) =>
@@ -377,36 +289,34 @@ export function LoadoutPage() {
 
   const closeEquipmentDrawer = useCallback(() => {
     setSelectedEquipmentId(null)
-  }, [])
+    equipEquipmentMutation.cancelIntent()
+  }, [equipEquipmentMutation])
   const closeShop = useCallback(() => {
     setIsShopOpen(false)
-  }, [])
+    purchasePillMutation.cancelIntent()
+  }, [purchasePillMutation])
   const closeConfirm = useCallback(() => {
     if (
       !usePillMutation.isPending &&
       !sellEquipmentMutation.isPending
     ) {
       setConfirmAction(null)
+      sellEquipmentMutation.cancelIntent()
+      usePillMutation.cancelIntent()
     }
   }, [
-    sellEquipmentMutation.isPending,
-    usePillMutation.isPending,
+    sellEquipmentMutation,
+    usePillMutation,
   ])
 
   const handleEquipEquipment = (equipment: GameViewEquipment) => {
     if (equipment.equipped || equipEquipmentMutation.isPending) {
       return
     }
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      equipmentIdempotencyKey,
-      uuid,
-    )
-    setEquipmentIdempotencyKey(idempotencyKey)
     setEquipmentNotice(null)
     setEquipmentError(null)
-    equipEquipmentMutation.mutate({
-      values: { instanceId: equipment.id },
-      idempotencyKey,
+    equipEquipmentMutation.execute({
+      instanceId: equipment.id,
     })
   }
 
@@ -420,27 +330,15 @@ export function LoadoutPage() {
     }
 
     if (confirmAction.kind === 'sell') {
-      const idempotencyKey = getOrCreateIdempotencyKey(
-        sellIdempotencyKey,
-        uuid,
-      )
-      setSellIdempotencyKey(idempotencyKey)
       setEquipmentError(null)
-      sellEquipmentMutation.mutate({
-        values: { instanceId: confirmAction.equipmentId },
-        idempotencyKey,
+      sellEquipmentMutation.execute({
+        instanceId: confirmAction.equipmentId,
       })
     } else {
-      const idempotencyKey = getOrCreateIdempotencyKey(
-        usePillIdempotencyKey,
-        uuid,
-      )
-      setUsePillIdempotencyKey(idempotencyKey)
       setPillNotice(null)
       setPillError(null)
-      usePillMutation.mutate({
-        values: { templateId: confirmAction.templateId },
-        idempotencyKey,
+      usePillMutation.execute({
+        templateId: confirmAction.templateId,
       })
     }
   }
@@ -450,16 +348,11 @@ export function LoadoutPage() {
     if (purchasePillMutation.isPending) {
       return
     }
-    const idempotencyKey =
-      purchaseIdempotency?.templateId === templateId
-        ? purchaseIdempotency.key
-        : uuid()
-    setPurchaseIdempotency({ templateId, key: idempotencyKey })
     setPillNotice(null)
     setPillError(null)
-    purchasePillMutation.mutate({
-      values: { templateId, quantity: 1 },
-      idempotencyKey,
+    purchasePillMutation.execute({
+      templateId,
+      quantity: 1,
     })
   }
 
@@ -619,7 +512,8 @@ export function LoadoutPage() {
                   }
                   isLoading={
                     equipMethodMutation.isPending &&
-                    methodIdempotency?.templateId ===
+                    equipMethodMutation.activeIntent
+                      ?.cultivationMethodTemplateId ===
                       method.templateId
                   }
                   onClick={() =>
@@ -1009,7 +903,8 @@ export function LoadoutPage() {
                   }
                   isLoading={
                     purchasePillMutation.isPending &&
-                    purchaseIdempotency?.templateId === pill.id
+                    purchasePillMutation.activeIntent
+                      ?.templateId === pill.id
                   }
                   onClick={() => handlePurchasePill(pill.id)}
                   variant={canBuy ? 'secondary' : 'ghost'}

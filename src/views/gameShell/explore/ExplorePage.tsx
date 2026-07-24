@@ -9,19 +9,15 @@ import { useNavigate } from 'react-router'
 import { Button, Panel, StatusBadge } from '@/components'
 import { exploreUsecase } from '@/domain'
 import type { ExplorationData } from '@/domain/repository'
-import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
-import { uuid } from '@/lib/uuid'
-import { getOrCreateIdempotencyKey } from '../game-mutation'
+import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 import { createExplorationResultView } from './exploration-result.adapter'
 
-/** 探索 mutation 使用的參數。 */
-interface ExploreMutationParams {
+/** 玩家送出的探索操作意圖。 */
+interface ExploreIntent {
   /** 玩家選擇的地圖 ID。 */
   mapId: string
-  /** 同一次探索與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
 }
 
 const mapStatusCopy = {
@@ -48,7 +44,7 @@ const battleLogPlaybackIntervalMs = 450
 /** 地圖選擇、探索提交與戰鬥結果的正式 API 頁面。 */
 export function ExplorePage() {
   const navigate = useNavigate()
-  const { gameState, reloadGameState } = useGameRuntime()
+  const { gameState } = useGameRuntime()
   const [selectedMapId, setSelectedMapId] = useState(
     gameState.maps[0]?.id ?? '',
   )
@@ -63,7 +59,6 @@ export function ExplorePage() {
   const resultRef = useRef<HTMLDivElement>(null)
   const battleLogRef = useRef<HTMLOListElement>(null)
   const exploreTriggerRef = useRef<HTMLElement>(null)
-  const exploreKeyRef = useRef<string | null>(null)
   const selectedMap =
     gameState.maps.find((map) => map.id === selectedMapId) ??
     gameState.maps[0]
@@ -85,13 +80,15 @@ export function ExplorePage() {
     gameState.character.spiritPower /
       gameState.character.maxSpiritPower <
       0.2
-  const exploreMutation = useMutation(
-    ({ mapId, idempotencyKey }: ExploreMutationParams) =>
-      exploreUsecase({ mapId }, { idempotencyKey }),
-    {
+  const exploreMutation = useGameMutation<
+    ExploreIntent,
+    Awaited<ReturnType<typeof exploreUsecase>>
+  >({
+      operation: 'explore',
+      request: ({ mapId }, { idempotencyKey }) =>
+        exploreUsecase({ mapId }, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        exploreKeyRef.current = null
+      onSuccess: (response) => {
         setExploreError(null)
         setExplorationResult(response.data)
         setVisibleBattleLogCount(
@@ -99,14 +96,12 @@ export function ExplorePage() {
             ? Math.min(1, response.data.battleLog?.length ?? 0)
             : 0,
         )
-        await reloadGameState()
         setIsResultOpen(true)
       },
       onError: (error) => {
         setExploreError(getApiClientError(error).message)
       },
-    },
-  )
+    })
   const canExplore =
     Boolean(selectedMap) &&
     selectedMap?.status !== 'locked' &&
@@ -207,15 +202,9 @@ export function ExplorePage() {
     }
 
     exploreTriggerRef.current = document.activeElement as HTMLElement | null
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      exploreKeyRef.current,
-      uuid,
-    )
-    exploreKeyRef.current = idempotencyKey
     setExploreError(null)
-    exploreMutation.mutate({
+    exploreMutation.execute({
       mapId: selectedMap.id,
-      idempotencyKey,
     })
   }
 

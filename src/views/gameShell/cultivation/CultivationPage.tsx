@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   Button,
   Modal,
@@ -14,31 +14,13 @@ import {
 } from '@/domain'
 import type { BreakthroughParams } from '@/domain/repository'
 import { useGlobalErrorHandler } from '@/error'
-import { useFetch, useMutation } from '@/hook'
+import { useFetch } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
-import { uuid } from '@/lib/uuid'
-import { getOrCreateIdempotencyKey } from '../game-mutation'
+import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 
-/** 修為領取 mutation 使用的冪等參數。 */
-interface ClaimCultivationMutationParams {
-  /** 同一次領取與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 突破 mutation 使用的參數。 */
-interface BreakthroughMutationParams {
-  /** 玩家選用的突破丹藥。 */
-  values: BreakthroughParams
-  /** 同一次突破與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
-
-/** 靈根升級 mutation 使用的參數。 */
-interface RootUpgradeMutationParams {
-  /** 同一次升級與網路重試共用的冪等鍵。 */
-  idempotencyKey: string
-}
+/** 不需要額外 request body 的遊戲操作意圖。 */
+type EmptyGameIntent = Record<string, never>
 
 type CultivationModal =
   | 'breakthroughConfirm'
@@ -54,7 +36,7 @@ const formatDuration = (minutes: number) => {
 
 /** 修煉、突破與靈根成長的正式 API 頁面。 */
 export function CultivationPage() {
-  const { gameState, reloadGameState } = useGameRuntime()
+  const { gameState } = useGameRuntime()
   const [modal, setModal] = useState<CultivationModal>(null)
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
     'success' | 'failure' | null
@@ -64,16 +46,12 @@ export function CultivationPage() {
     string | null
   >(null)
   const [selectedPillId, setSelectedPillId] = useState('')
-  const [breakthroughIdempotencyKey, setBreakthroughIdempotencyKey] =
-    useState<string | null>(null)
   const [rootUpgradeNotice, setRootUpgradeNotice] = useState<
     string | null
   >(null)
   const [rootUpgradeError, setRootUpgradeError] = useState<
     string | null
   >(null)
-  const claimKeyRef = useRef<string | null>(null)
-  const rootUpgradeKeyRef = useRef<string | null>(null)
   const { notifySuccess } = useGlobalErrorHandler()
   const { character, cultivationState } = gameState
 
@@ -91,13 +69,15 @@ export function CultivationPage() {
     },
   )
 
-  const claimMutation = useMutation(
-    ({ idempotencyKey }: ClaimCultivationMutationParams) =>
-      claimCultivationUsecase({ idempotencyKey }),
-    {
+  const claimMutation = useGameMutation<
+    EmptyGameIntent,
+    Awaited<ReturnType<typeof claimCultivationUsecase>>
+  >({
+      operation: 'claim-cultivation',
+      request: (_intent, { idempotencyKey }) =>
+        claimCultivationUsecase({ idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        claimKeyRef.current = null
+      onSuccess: (response) => {
         setClaimError(null)
         notifySuccess(
           `已領取 ${response.data.awardedCultivation.toLocaleString()} 修為。`,
@@ -105,53 +85,51 @@ export function CultivationPage() {
             title: '修為領取成功',
           },
         )
-        await reloadGameState()
       },
       onError: (error) => {
         setClaimError(getApiClientError(error).message)
       },
-    },
-  )
-  const breakthroughMutation = useMutation(
-    ({ values, idempotencyKey }: BreakthroughMutationParams) =>
-      breakthroughUsecase(values, { idempotencyKey }),
-    {
+    })
+  const breakthroughMutation = useGameMutation<
+    BreakthroughParams,
+    Awaited<ReturnType<typeof breakthroughUsecase>>
+  >({
+      operation: 'breakthrough',
+      request: (intent, { idempotencyKey }) =>
+        breakthroughUsecase(intent, { idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        setBreakthroughIdempotencyKey(null)
+      onSuccess: (response) => {
         setLastBreakthroughResult(
           response.data.succeeded ? 'success' : 'failure',
         )
-        await reloadGameState()
         setModal('breakthroughResult')
       },
       onError: (error) => {
         setBreakthroughNotice(getApiClientError(error).message)
       },
-    },
-  )
-  const rootUpgradeMutation = useMutation(
-    ({ idempotencyKey }: RootUpgradeMutationParams) =>
-      upgradeSpiritualRootUsecase({ idempotencyKey }),
-    {
+    })
+  const rootUpgradeMutation = useGameMutation<
+    EmptyGameIntent,
+    Awaited<ReturnType<typeof upgradeSpiritualRootUsecase>>
+  >({
+      operation: 'upgrade-spiritual-root',
+      request: (_intent, { idempotencyKey }) =>
+        upgradeSpiritualRootUsecase({ idempotencyKey }),
       enableGlobalError: false,
-      onSuccess: async (response) => {
-        rootUpgradeKeyRef.current = null
+      onSuccess: (response) => {
         setRootUpgradeError(null)
         setRootUpgradeNotice(
           `靈根已由 ${response.data.beforeQuality} 提升至 ${response.data.afterQuality}，消耗 ${response.data.consumedEssence.toLocaleString()} 靈根精華。`,
         )
-        await Promise.all([
-          reloadGameState(),
-          breakthroughPreviewQuery.refetch(),
-        ])
         setModal(null)
+      },
+      synchronize: async () => {
+        await breakthroughPreviewQuery.refetch()
       },
       onError: (error) => {
         setRootUpgradeError(getApiClientError(error).message)
       },
-    },
-  )
+    })
 
   const preview = breakthroughPreviewQuery.data?.data
   const breakthroughPreviewError = breakthroughPreviewQuery.error
@@ -189,10 +167,12 @@ export function CultivationPage() {
       !breakthroughMutation.isPending
     ) {
       setModal(null)
+      breakthroughMutation.cancelIntent()
+      rootUpgradeMutation.cancelIntent()
     }
   }, [
-    breakthroughMutation.isPending,
-    rootUpgradeMutation.isPending,
+    breakthroughMutation,
+    rootUpgradeMutation,
   ])
 
   const handleClaim = () => {
@@ -204,13 +184,8 @@ export function CultivationPage() {
       return
     }
 
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      claimKeyRef.current,
-      uuid,
-    )
-    claimKeyRef.current = idempotencyKey
     setClaimError(null)
-    claimMutation.mutate({ idempotencyKey })
+    claimMutation.execute({})
   }
 
   const handleConfirmBreakthrough = () => {
@@ -222,18 +197,10 @@ export function CultivationPage() {
       return
     }
 
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      breakthroughIdempotencyKey,
-      uuid,
-    )
-    setBreakthroughIdempotencyKey(idempotencyKey)
     setBreakthroughNotice(null)
-    breakthroughMutation.mutate({
-      values: selectedPillId
-        ? { pillTemplateId: selectedPillId }
-        : {},
-      idempotencyKey,
-    })
+    breakthroughMutation.execute(
+      selectedPillId ? { pillTemplateId: selectedPillId } : {},
+    )
   }
 
   const handleConfirmRootUpgrade = () => {
@@ -241,14 +208,9 @@ export function CultivationPage() {
       return
     }
 
-    const idempotencyKey = getOrCreateIdempotencyKey(
-      rootUpgradeKeyRef.current,
-      uuid,
-    )
-    rootUpgradeKeyRef.current = idempotencyKey
     setRootUpgradeNotice(null)
     setRootUpgradeError(null)
-    rootUpgradeMutation.mutate({ idempotencyKey })
+    rootUpgradeMutation.execute({})
   }
 
   return (
