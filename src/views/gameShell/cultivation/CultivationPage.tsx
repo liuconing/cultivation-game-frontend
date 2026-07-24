@@ -13,6 +13,7 @@ import {
   upgradeSpiritualRootUsecase,
 } from '@/domain'
 import type { BreakthroughParams } from '@/domain/repository'
+import { useGlobalErrorHandler } from '@/error'
 import { useFetch, useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { uuid } from '@/lib/uuid'
@@ -58,7 +59,6 @@ export function CultivationPage() {
   const [lastBreakthroughResult, setLastBreakthroughResult] = useState<
     'success' | 'failure' | null
   >(null)
-  const [claimNotice, setClaimNotice] = useState<string | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
   const [breakthroughNotice, setBreakthroughNotice] = useState<
     string | null
@@ -74,6 +74,7 @@ export function CultivationPage() {
   >(null)
   const claimKeyRef = useRef<string | null>(null)
   const rootUpgradeKeyRef = useRef<string | null>(null)
+  const { notifySuccess } = useGlobalErrorHandler()
   const { character, cultivationState } = gameState
 
   const breakthroughPreviewQuery = useFetch(
@@ -98,8 +99,9 @@ export function CultivationPage() {
       onSuccess: async (response) => {
         claimKeyRef.current = null
         setClaimError(null)
-        setClaimNotice(
+        notifySuccess(
           `已領取 ${response.data.awardedCultivation.toLocaleString()} 修為。`,
+          '修為領取成功',
         )
         await reloadGameState()
       },
@@ -205,7 +207,6 @@ export function CultivationPage() {
       uuid,
     )
     claimKeyRef.current = idempotencyKey
-    setClaimNotice(null)
     setClaimError(null)
     claimMutation.mutate({ idempotencyKey })
   }
@@ -274,15 +275,6 @@ export function CultivationPage() {
                   ? `${cultivationState.equippedMethodName} × ${cultivationState.methodMultiplier}`
                   : '未裝備功法 × 1'}
               </p>
-              {claimNotice ? (
-                <p
-                  aria-live="polite"
-                  className="mt-3 text-sm text-jade-100"
-                  role="status"
-                >
-                  {claimNotice}
-                </p>
-              ) : null}
               {claimError ? (
                 <p
                   className="mt-3 text-sm text-cinnabar-100"

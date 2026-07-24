@@ -9,6 +9,8 @@ export interface GlobalErrorContextValue {
   handleGlobalError: (error: unknown) => void
   /** 關閉目前全域錯誤通知。 */
   clearGlobalError: () => void
+  /** 顯示一筆全站成功通知，新的通知會取代目前通知。 */
+  notifySuccess: (message: string, title?: string) => void
 }
 
 /** 尚未掛載 Global Error Provider 時的空 context。 */
