@@ -35,7 +35,9 @@ test('戰鬥 DTO 會轉成既有結果層並保留後端訊息', () => {
       {
         round: 1,
         actorId: 'player',
+        actorName: '測試角色',
         targetId: 'enemy',
+        targetName: '山林鬼物',
         action: 'attack',
         hit: true,
         critical: false,
@@ -54,6 +56,8 @@ test('戰鬥 DTO 會轉成既有結果層並保留後端訊息', () => {
   assert.deepEqual(view.battle?.log, [
     {
       round: 1,
+      actorName: '測試角色',
+      targetName: '山林鬼物',
       message: '命中對手。',
       hit: true,
       critical: false,

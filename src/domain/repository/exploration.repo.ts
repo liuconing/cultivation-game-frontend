@@ -14,8 +14,12 @@ export interface BattleLogEntry {
   round: number
   /** 發動行動者的 ID。 */
   actorId: string
+  /** 發動行動者的顯示名稱。 */
+  actorName: string
   /** 行動目標的 ID。 */
   targetId: string
+  /** 行動目標的顯示名稱。 */
+  targetName: string
   /** 本次執行的行動類型。 */
   action: 'attack'
   /** 本次攻擊是否命中。 */

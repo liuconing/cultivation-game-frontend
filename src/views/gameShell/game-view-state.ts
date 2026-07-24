@@ -56,6 +56,10 @@ export interface GameViewMap {
 export interface GameViewBattleLogEntry {
   /** 發生行動的回合。 */
   round: number
+  /** 發動行動者的顯示名稱。 */
+  actorName: string
+  /** 承受行動者的顯示名稱。 */
+  targetName: string
   /** 後端產生的戰鬥敘述。 */
   message: string
   /** 本次行動是否命中。 */

@@ -86,6 +86,8 @@ export const createExplorationResultView = (
       rounds,
       log: log.map((entry) => ({
         round: entry.round,
+        actorName: entry.actorName,
+        targetName: entry.targetName,
         message: entry.message,
         hit: entry.hit,
         critical: entry.critical,

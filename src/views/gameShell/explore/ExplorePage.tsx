@@ -472,9 +472,14 @@ export function ExplorePage() {
                           {entry.hit
                             ? `造成 ${entry.damage.toLocaleString()} 點傷害`
                             : '本次未造成傷害'}
-                          {' ・ '}
-                          目標剩餘生命{' '}
-                          {entry.targetHp.toLocaleString()}
+                          <span aria-hidden="true"> ・ </span>
+                          <span className="font-semibold text-gold-100">
+                            {entry.targetName}
+                          </span>{' '}
+                          剩餘生命{' '}
+                          <strong className="font-semibold text-cinnabar-100">
+                            {entry.targetHp.toLocaleString()}
+                          </strong>
                         </p>
                       </li>
                     ))}
