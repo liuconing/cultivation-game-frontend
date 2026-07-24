@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type PropsWithChildren,
@@ -8,6 +9,7 @@ import { getApiClientError } from '@/lib/axios'
 import {
   GlobalErrorContext,
   type GlobalErrorContextValue,
+  type SuccessNotificationOptions,
 } from './global-error-context'
 import {
   createGlobalErrorNotice,
@@ -15,6 +17,9 @@ import {
 } from './global-error'
 import { GlobalErrorNotice } from './GlobalErrorNotice'
 import { GlobalSuccessNotice } from './GlobalSuccessNotice'
+
+/** 成功通知預設顯示兩秒。 */
+const DEFAULT_SUCCESS_AUTO_CLOSE_SECONDS = 2
 
 /** Provider 目前顯示的單筆通知。 */
 type GlobalNotice =
@@ -31,6 +36,8 @@ type GlobalNotice =
       title: string
       /** 成功通知內容。 */
       message: string
+      /** 自動關閉秒數；0 代表只接受手動關閉。 */
+      autoCloseSeconds: number
     }
 
 /**
@@ -56,15 +63,45 @@ export function GlobalErrorProvider({
    * @param title - 成功通知標題。
    */
   const notifySuccess = useCallback(
-    (message: string, title = '操作成功'): void => {
+    (
+      message: string,
+      options: SuccessNotificationOptions = {},
+    ): void => {
       setNotice({
         kind: 'success',
-        title,
+        title: options.title ?? '操作成功',
         message,
+        autoCloseSeconds: Math.max(
+          0,
+          options.autoCloseSeconds ??
+            DEFAULT_SUCCESS_AUTO_CLOSE_SECONDS,
+        ),
       })
     },
     [],
   )
+
+  /**
+   * 成功通知到達指定時間後自動關閉；更新通知時會取消舊計時器。
+   */
+  useEffect(() => {
+    if (
+      notice?.kind !== 'success' ||
+      notice.autoCloseSeconds === 0
+    ) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setNotice((currentNotice) =>
+        currentNotice === notice ? null : currentNotice,
+      )
+    }, notice.autoCloseSeconds * 1_000)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [notice])
 
   /**
    * 將未知錯誤正規化後更新全域錯誤通知。

@@ -101,7 +101,9 @@ export function CultivationPage() {
         setClaimError(null)
         notifySuccess(
           `已領取 ${response.data.awardedCultivation.toLocaleString()} 修為。`,
-          '修為領取成功',
+          {
+            title: '修為領取成功',
+          },
         )
         await reloadGameState()
       },

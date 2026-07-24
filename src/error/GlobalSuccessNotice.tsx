@@ -1,3 +1,5 @@
+import { FaTimes } from 'react-icons/fa'
+
 /** 全站成功通知所需的顯示資料。 */
 interface GlobalSuccessNoticeProps {
   /** 通知標題。 */
@@ -35,11 +37,12 @@ export function GlobalSuccessNotice({
         </div>
         <button
           aria-label="關閉成功通知"
-          className="min-h-10 shrink-0 rounded-md border border-white/12 px-3 text-sm text-neutral-300 transition hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-jade-300"
+          className="grid size-10 shrink-0 place-items-center rounded-md border border-white/12 text-neutral-300 transition hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-jade-300"
           onClick={onClose}
+          title="關閉"
           type="button"
         >
-          關閉
+          <FaTimes aria-hidden="true" />
         </button>
       </div>
     </div>

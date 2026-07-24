@@ -4,4 +4,7 @@ export {
   createGlobalErrorNotice,
   type GlobalErrorNotice,
 } from './global-error'
-export type { GlobalErrorContextValue } from './global-error-context'
+export type {
+  GlobalErrorContextValue,
+  SuccessNotificationOptions,
+} from './global-error-context'
