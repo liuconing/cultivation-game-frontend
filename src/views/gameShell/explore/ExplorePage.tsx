@@ -342,11 +342,11 @@ export function ExplorePage() {
         <div
           aria-labelledby="exploration-result-title"
           aria-modal="true"
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/98 p-3 backdrop-blur-xl sm:p-5"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/98 p-3 backdrop-blur-xl sm:p-5 lg:overflow-hidden"
           role="dialog"
         >
           <div
-            className="mx-auto flex min-h-full w-full max-w-5xl flex-col outline-none"
+            className="mx-auto flex min-h-full w-full max-w-5xl flex-col outline-none lg:h-full lg:min-h-0"
             ref={resultRef}
             tabIndex={-1}
           >
@@ -408,8 +408,8 @@ export function ExplorePage() {
                 </div>
               </div>
             ) : (
-              <div className="grid flex-1 gap-4 py-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.7fr)]">
-                <section className="min-w-0 rounded-lg border border-white/12 bg-ink-900/70 p-4 sm:p-5">
+              <div className="grid min-h-0 flex-1 gap-4 py-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.7fr)]">
+                <section className="flex min-h-0 min-w-0 flex-col rounded-lg border border-white/12 bg-ink-900/70 p-4 sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="font-serif text-lg text-neutral-100">
@@ -437,7 +437,7 @@ export function ExplorePage() {
                     aria-live="polite"
                     aria-label={`${battle?.rounds ?? 0} 回合戰鬥紀錄`}
                     aria-relevant="additions"
-                    className="mt-4 max-h-[48vh] space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm leading-6"
+                    className="ink-scrollbar mt-4 h-[calc(100dvh-18rem)] min-h-72 space-y-2 overflow-y-auto overscroll-contain pr-2 text-sm leading-6 lg:h-auto lg:min-h-0 lg:flex-1"
                     ref={battleLogRef}
                     role="log"
                   >

@@ -97,6 +97,38 @@ select {
   background: var(--color-jade-200);
 }
 
+/* 水墨主題捲動軸：Firefox 使用標準屬性，Chromium/Safari 使用偽元素。 */
+.ink-scrollbar {
+  scrollbar-color: var(--color-jade-700) rgb(16 21 18 / 0.82);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.ink-scrollbar::-webkit-scrollbar {
+  width: 0.65rem;
+}
+
+.ink-scrollbar::-webkit-scrollbar-track {
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 999px;
+  background: rgb(16 21 18 / 0.82);
+}
+
+.ink-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 3rem;
+  border: 2px solid rgb(16 21 18 / 0.9);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold-400),
+    var(--color-jade-700)
+  );
+}
+
+.ink-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-jade-400);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
