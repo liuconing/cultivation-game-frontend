@@ -7,7 +7,7 @@
 
 - `repository/`：定義 request、response DTO，並透過共用 `apiClient` 呼叫 API。
 - `usecase/`：提供畫面層使用的業務入口與 DTO aliases。
-- `repository/endpoints.ts`：集中管理 21 條公開 API 的 method、path 與 smoke test 行為。
+- `repository/endpoints.ts`：集中管理 23 條公開 API 的 method、path 與 smoke test 行為。
 - `repository/common.ts`：定義 envelope、ISO 日期與冪等請求設定。
 
 ## 共通契約

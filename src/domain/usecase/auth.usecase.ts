@@ -1,7 +1,12 @@
-import { loginUser, registerUser } from '../repository'
+import {
+  loginUser,
+  logoutUser,
+  registerUser,
+} from '../repository'
 import type {
   LoginUserParams,
   LoginUserRes,
+  LogoutUserRes,
   RegisterUserParams,
   RegisterUserRes,
 } from '../repository'
@@ -17,6 +22,9 @@ export type RegisterUserDto = RegisterUserRes
 
 /** 註冊 usecase 傳入參數。 */
 export type RegisterUserParamsDto = RegisterUserParams
+
+/** 登出回傳 DTO。 */
+export type LogoutUserDto = LogoutUserRes
 
 /**
  * 登入使用者並取得 JWT token。
@@ -41,3 +49,13 @@ export const registerUserUsecase = async (
 ): Promise<RegisterUserDto> => {
   return registerUser(params)
 }
+
+/**
+ * 撤銷目前登入 token。
+ *
+ * @returns 登出成功 DTO。
+ */
+export const logoutUserUsecase =
+  async (): Promise<LogoutUserDto> => {
+    return logoutUser()
+  }

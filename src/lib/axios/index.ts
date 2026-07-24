@@ -23,7 +23,7 @@ apiClient.interceptors.response.use(
       error.response?.status === 401 &&
       useAuthStore.getState().token
     ) {
-      useAuthStore.getState().clearAuth({ reason: 'expired' })
+      useAuthStore.getState().clearAuth({ reason: 'invalid' })
     }
 
     return Promise.reject(error)

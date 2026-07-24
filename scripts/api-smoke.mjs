@@ -108,9 +108,9 @@ const verifyInvalidCredentials = async () => {
   console.log('PASS POST /auth/login INVALID_CREDENTIALS')
 }
 
-if (Object.keys(apiEndpoints).length !== 21) {
+if (Object.keys(apiEndpoints).length !== 23) {
   throw new Error(
-    `endpoint registry 應有 21 筆，實際為 ${Object.keys(apiEndpoints).length}`,
+    `endpoint registry 應有 23 筆，實際為 ${Object.keys(apiEndpoints).length}`,
   )
 }
 

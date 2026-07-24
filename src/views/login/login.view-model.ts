@@ -90,10 +90,10 @@ export function useLoginViewModel(): ILoginViewModel {
   const confirmPasswordRef = useRef<HTMLInputElement>(null)
   const visibleNotice =
     notice ??
-    (sessionNotice === 'expired'
+    (sessionNotice === 'invalid'
       ? {
           tone: 'error' as const,
-          message: '登入狀態已失效，請重新登入。',
+          message: '登入憑證已失效，請重新登入。',
         }
       : null)
 

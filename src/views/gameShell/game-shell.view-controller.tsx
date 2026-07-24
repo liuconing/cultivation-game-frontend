@@ -36,6 +36,7 @@ export function gameShellViewController({
   indicators,
   isCharacterDrawerOpen,
   isAccountMenuOpen,
+  isLoggingOut,
   shellNotice,
   shellError,
   hasCatalogError,
@@ -149,12 +150,14 @@ export function gameShellViewController({
                       重新載入狀態
                     </button>
                     <button
-                      className="min-h-10 w-full rounded px-3 text-left text-sm text-cinnabar-100 hover:bg-cinnabar-400/10 focus-visible:outline-2 focus-visible:outline-jade-300"
+                      aria-busy={isLoggingOut}
+                      className="min-h-10 w-full rounded px-3 text-left text-sm text-cinnabar-100 hover:bg-cinnabar-400/10 focus-visible:outline-2 focus-visible:outline-jade-300 disabled:cursor-wait disabled:opacity-55"
+                      disabled={isLoggingOut}
                       onClick={handleLogout}
                       role="menuitem"
                       type="button"
                     >
-                      登出
+                      {isLoggingOut ? '登出中…' : '登出'}
                     </button>
                   </div>
                 ) : null}

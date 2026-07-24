@@ -39,8 +39,15 @@ export interface RegisterUserData {
   user: AuthUser
 }
 
+/** 登出成功資料。 */
+export interface LogoutUserData {
+  /** 目前 token 是否已由後端撤銷。 */
+  loggedOut: true
+}
+
 export type LoginUserRes = ApiSuccess<LoginUserData>
 export type RegisterUserRes = ApiSuccess<RegisterUserData>
+export type LogoutUserRes = ApiSuccess<LogoutUserData>
 
 /** 註冊使用者。 */
 export const registerUser = async (
@@ -61,6 +68,15 @@ export const loginUser = async (
   const { data } = await apiClient.post<LoginUserRes>(
     apiEndpoints.login.path(),
     params,
+  )
+
+  return data
+}
+
+/** 撤銷目前 Bearer token 對應的後端 session。 */
+export const logoutUser = async (): Promise<LogoutUserRes> => {
+  const { data } = await apiClient.post<LogoutUserRes>(
+    apiEndpoints.logout.path(),
   )
 
   return data

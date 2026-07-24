@@ -10,7 +10,7 @@ export type AuthSession = {
 }
 
 /** 清除登入狀態的原因。 */
-export type AuthClearReason = 'logout' | 'expired'
+export type AuthClearReason = 'logout' | 'invalid'
 
 /** 清除登入狀態時可附帶的資訊。 */
 export interface ClearAuthOptions {
@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthStore>()(
         set({
           token: null,
           user: null,
-          sessionNotice: reason === 'expired' ? reason : null,
+          sessionNotice: reason === 'invalid' ? reason : null,
         }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       clearSessionNotice: () => set({ sessionNotice: null }),

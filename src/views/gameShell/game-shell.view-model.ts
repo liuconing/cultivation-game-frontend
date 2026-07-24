@@ -114,6 +114,8 @@ export interface IGameShellViewModel {
   indicators: GlobalIndicator[]
   isCharacterDrawerOpen: boolean
   isAccountMenuOpen: boolean
+  /** 是否正在向後端撤銷目前 token。 */
+  isLoggingOut: boolean
   shellNotice: string | null
   /** 框架層手動同步失敗時的局部錯誤。 */
   shellError: string | null
@@ -137,7 +139,7 @@ export interface IGameShellViewModel {
 /** 提供 Game Shell 導覽、帳號選單與正式遊戲資料。 */
 export function useGameShellViewModel(): IGameShellViewModel {
   const location = useLocation()
-  const { user, logout } = useSession()
+  const { user, logout, isLoggingOut } = useSession()
   const {
     gameState,
     catalogError,
@@ -243,10 +245,20 @@ export function useGameShellViewModel(): IGameShellViewModel {
     })
   }
 
-  /** 清除登入狀態並返回登入頁。 */
+  /** 撤銷目前 token，成功後由路由守衛返回登入頁。 */
   const handleLogout = (): void => {
-    setIsAccountMenuOpen(false)
-    logout()
+    if (isLoggingOut) {
+      return
+    }
+
+    setShellError(null)
+    setShellNotice('正在安全登出…')
+    void logout().catch((error: unknown) => {
+      setShellNotice(null)
+      setShellError(
+        `${getApiClientError(error).message} 登出尚未完成，請重試。`,
+      )
+    })
   }
 
   return {
@@ -256,6 +268,7 @@ export function useGameShellViewModel(): IGameShellViewModel {
     indicators: getGlobalIndicators(gameState),
     isCharacterDrawerOpen,
     isAccountMenuOpen,
+    isLoggingOut,
     shellNotice,
     shellError,
     hasCatalogError: Boolean(catalogError),

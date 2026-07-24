@@ -27,8 +27,10 @@ export interface SessionContextValue {
   errorMessage: string | null
   /** 重新執行角色與 GameState 啟動檢查。 */
   reloadSession: () => Promise<void>
-  /** 清除目前登入狀態與快取。 */
-  logout: () => void
+  /** 後端是否正在撤銷目前 token。 */
+  isLoggingOut: boolean
+  /** 撤銷目前 token，成功後清除登入狀態與快取。 */
+  logout: () => Promise<void>
 }
 
 /** Session 啟動查詢的成功結果。 */

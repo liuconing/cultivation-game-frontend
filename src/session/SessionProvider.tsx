@@ -3,11 +3,13 @@ import { useQueryClient } from '@/lib/react-query'
 import {
   getGameStateUsecase,
   getMyCharacterUsecase,
+  logoutUserUsecase,
 } from '@/domain'
-import { useFetch } from '@/hook'
+import { useFetch, useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useAuthStore } from '@/stores'
 import { SessionContext } from './session-context'
+import { shouldFinalizeLogoutAfterError } from './logout-policy'
 import type {
   SessionBootstrapData,
   SessionContextValue,
@@ -112,6 +114,12 @@ export function SessionProvider({
       enableGlobalError: false,
     },
   )
+  const logoutMutation = useMutation(
+    () => logoutUserUsecase(),
+    {
+      enableGlobalError: false,
+    },
+  )
 
   const status: SessionStatus = !hasHydrated
     ? 'hydrating'
@@ -132,11 +140,27 @@ export function SessionProvider({
       errorMessage: sessionQuery.isError
         ? getApiClientError(sessionQuery.error).message
         : null,
+      isLoggingOut: logoutMutation.isPending,
       reloadSession: async () => {
         await sessionQuery.refetch()
       },
-      logout: () => {
-        clearAuth({ reason: 'logout' })
+      logout: async () => {
+        let clearReason: 'logout' | 'invalid' = 'logout'
+
+        try {
+          await logoutMutation.mutateAsync()
+        } catch (error) {
+          if (
+            !shouldFinalizeLogoutAfterError(
+              getApiClientError(error).status,
+            )
+          ) {
+            throw error
+          }
+          clearReason = 'invalid'
+        }
+
+        clearAuth({ reason: clearReason })
         queryClient.removeQueries({
           queryKey: [SESSION_QUERY_KEY],
         })
@@ -144,6 +168,7 @@ export function SessionProvider({
     }),
     [
       clearAuth,
+      logoutMutation,
       queryClient,
       sessionQuery,
       status,

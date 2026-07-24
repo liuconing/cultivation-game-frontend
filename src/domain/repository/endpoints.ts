@@ -35,6 +35,12 @@ export const apiEndpoints = {
     smokeExpectation: 'validation',
     smokeBody: {},
   },
+  logout: {
+    method: 'POST',
+    path: staticPath('/auth/logout'),
+    smokeExpectation: 'unauthorized',
+    smokeBody: {},
+  },
   getMyCharacter: {
     method: 'GET',
     path: staticPath('/characters/me'),
