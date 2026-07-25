@@ -12,6 +12,7 @@ import type {
   GameViewSkill,
   GameViewState,
 } from './game-view-state'
+import { getGameViewMapStatus } from './explore/map-status.ts'
 
 const genderLabels: Record<
   string,
@@ -307,11 +308,10 @@ export const createGameViewState = (
       name: map.name,
       recommendedRealm:
         realmLabels[map.recommendedRealm] ?? map.recommendedRealm,
-      status: map.unlocked
-        ? map.realmDifference < 0
-          ? 'challenging'
-          : 'unlocked'
-        : 'locked',
+      status: getGameViewMapStatus(
+        map.unlocked,
+        map.realmDifference,
+      ),
       monsters: [],
       possibleDrops: [],
       realmDifference: map.realmDifference,

@@ -7,30 +7,13 @@ import { getApiClientError } from '@/lib/axios'
 import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 import { createExplorationResultView } from './exploration-result.adapter'
+import { getMapStatusPresentation } from './map-status.ts'
 import { useExplorationPlayback } from './use-exploration-playback'
 
 /** 玩家送出的探索操作意圖。 */
 interface ExploreIntent {
   /** 玩家選擇的地圖 ID。 */
   mapId: string
-}
-
-const mapStatusCopy = {
-  unlocked: {
-    label: '同境界',
-    tone: 'jade' as const,
-    description: '可安全進入',
-  },
-  challenging: {
-    label: '越一境界',
-    tone: 'gold' as const,
-    description: '境界壓制・掉落加成',
-  },
-  locked: {
-    label: '越兩階',
-    tone: 'cinnabar' as const,
-    description: '尚未解鎖・不可進入',
-  },
 }
 
 /** 地圖選擇、探索提交與戰鬥結果的正式 API 頁面。 */
@@ -126,7 +109,7 @@ export function ExplorePage() {
         <Panel eyebrow="EXPLORE" title="探索地圖">
           <div className="grid gap-3">
             {gameState.maps.map((map) => {
-              const status = mapStatusCopy[map.status]
+              const status = getMapStatusPresentation(map)
               const isSelected = map.id === selectedMap?.id
 
               return (
