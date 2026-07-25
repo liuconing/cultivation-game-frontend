@@ -1,18 +1,13 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Button, Panel, StatusBadge } from '@/components'
+import { Button, Modal, Panel, StatusBadge } from '@/components'
 import { exploreUsecase } from '@/domain'
 import type { ExplorationData } from '@/domain/repository'
 import { getApiClientError } from '@/lib/axios'
 import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
 import { createExplorationResultView } from './exploration-result.adapter'
+import { useExplorationPlayback } from './use-exploration-playback'
 
 /** 玩家送出的探索操作意圖。 */
 interface ExploreIntent {
@@ -38,9 +33,6 @@ const mapStatusCopy = {
   },
 }
 
-/** 每筆戰鬥敘述顯示的間隔毫秒數。 */
-const battleLogPlaybackIntervalMs = 450
-
 /** 地圖選擇、探索提交與戰鬥結果的正式 API 頁面。 */
 export function ExplorePage() {
   const navigate = useNavigate()
@@ -54,10 +46,6 @@ export function ExplorePage() {
   const [exploreError, setExploreError] = useState<string | null>(
     null,
   )
-  const [visibleBattleLogCount, setVisibleBattleLogCount] =
-    useState(0)
-  const resultRef = useRef<HTMLDivElement>(null)
-  const battleLogRef = useRef<HTMLOListElement>(null)
   const exploreTriggerRef = useRef<HTMLElement>(null)
   const selectedMap =
     gameState.maps.find((map) => map.id === selectedMapId) ??
@@ -70,10 +58,16 @@ export function ExplorePage() {
     [explorationResult],
   )
   const battle = resultView?.battle ?? null
-  const visibleBattleLog =
-    battle?.log.slice(0, visibleBattleLogCount) ?? []
-  const isBattlePlaybackComplete =
-    visibleBattleLogCount >= (battle?.log.length ?? 0)
+  const {
+    visibleBattleLog,
+    visibleCount: visibleBattleLogCount,
+    isComplete: isBattlePlaybackComplete,
+    scrollContainerRef: battleLogRef,
+  } = useExplorationPlayback({
+    isOpen: isResultOpen,
+    battleId: battle?.id ?? null,
+    battleLog: battle?.log ?? [],
+  })
   const isEncounter = resultView?.kind === 'event'
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
@@ -91,11 +85,6 @@ export function ExplorePage() {
       onSuccess: (response) => {
         setExploreError(null)
         setExplorationResult(response.data)
-        setVisibleBattleLogCount(
-          response.data.eventType === 'battle'
-            ? Math.min(1, response.data.battleLog?.length ?? 0)
-            : 0,
-        )
         setIsResultOpen(true)
       },
       onError: (error) => {
@@ -109,99 +98,17 @@ export function ExplorePage() {
 
   const closeResult = useCallback(() => {
     setIsResultOpen(false)
-    setVisibleBattleLogCount(0)
   }, [])
-
-  useEffect(() => {
-    if (
-      !isResultOpen ||
-      !battle ||
-      visibleBattleLogCount >= battle.log.length
-    ) {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setVisibleBattleLogCount((currentCount) =>
-        Math.min(currentCount + 1, battle.log.length),
-      )
-    }, battleLogPlaybackIntervalMs)
-
-    return () => {
-      window.clearTimeout(timeoutId)
-    }
-  }, [battle, isResultOpen, visibleBattleLogCount])
-
-  useEffect(() => {
-    if (!isResultOpen || !battleLogRef.current) {
-      return
-    }
-
-    battleLogRef.current.scrollTo({
-      behavior: 'smooth',
-      top: battleLogRef.current.scrollHeight,
-    })
-  }, [isResultOpen, visibleBattleLogCount])
-
-  useEffect(() => {
-    if (!isResultOpen) {
-      return
-    }
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    resultRef.current?.focus()
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeResult()
-        return
-      }
-
-      if (event.key !== 'Tab') {
-        return
-      }
-
-      const focusableElements = Array.from(
-        resultRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      )
-      const firstElement = focusableElements[0]
-      const lastElement = focusableElements.at(-1)
-
-      if (!firstElement || !lastElement) {
-        event.preventDefault()
-        resultRef.current?.focus()
-      } else if (
-        event.shiftKey &&
-        (document.activeElement === firstElement ||
-          document.activeElement === resultRef.current)
-      ) {
-        event.preventDefault()
-        lastElement.focus()
-      } else if (
-        !event.shiftKey &&
-        document.activeElement === lastElement
-      ) {
-        event.preventDefault()
-        firstElement.focus()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = previousOverflow
-      exploreTriggerRef.current?.focus()
-    }
-  }, [closeResult, isResultOpen])
 
   const handleExplore = () => {
     if (!canExplore) {
       return
     }
 
-    exploreTriggerRef.current = document.activeElement as HTMLElement | null
+    // Mutation pending 會讓按鈕暫時 disabled 並失焦；先保留觸發元素，
+    // 讓全螢幕結果關閉時仍能回到原操作位置。
+    exploreTriggerRef.current =
+      document.activeElement as HTMLElement | null
     setExploreError(null)
     exploreMutation.execute({
       mapId: selectedMap.id,
@@ -327,49 +234,33 @@ export function ExplorePage() {
         </Panel>
       </div>
 
-      {isResultOpen ? (
-        <div
-          aria-labelledby="exploration-result-title"
-          aria-modal="true"
-          className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/98 p-3 backdrop-blur-xl sm:p-5 lg:overflow-hidden"
-          role="dialog"
-        >
-          <div
-            className="mx-auto flex min-h-full w-full max-w-5xl flex-col outline-none lg:h-full lg:min-h-0"
-            ref={resultRef}
-            tabIndex={-1}
+      <Modal
+        eyebrow="EXPLORATION RESULT"
+        headerAccessory={
+          <StatusBadge
+            tone={
+              isEncounter || battle?.result === 'victory'
+                ? 'jade'
+                : 'cinnabar'
+            }
           >
-            <header className="flex min-w-0 items-start justify-between gap-3 border-b border-white/12 pb-4">
-              <div className="min-w-0">
-                <p className="text-xs tracking-[0.2em] text-gold-200/65">
-                  EXPLORATION RESULT
-                </p>
-                <h2
-                  className="mt-1 break-words font-serif text-2xl text-neutral-100"
-                  id="exploration-result-title"
-                >
-                  {resultView?.title ?? '探索結果'}
-                </h2>
-              </div>
-              <StatusBadge
-                tone={
-                  isEncounter || battle?.result === 'victory'
-                    ? 'jade'
-                    : 'cinnabar'
-                }
-              >
-                {isEncounter
-                  ? '奇遇'
-                  : battle?.result === 'victory'
-                    ? battle.firstKill
-                      ? 'Boss 首殺'
-                      : '勝利'
-                    : battle?.result === 'turn-limit'
-                      ? '30 回合失敗'
-                      : '戰敗'}
-              </StatusBadge>
-            </header>
-
+            {isEncounter
+              ? '奇遇'
+              : battle?.result === 'victory'
+                ? battle.firstKill
+                  ? 'Boss 首殺'
+                  : '勝利'
+                : battle?.result === 'turn-limit'
+                  ? '30 回合失敗'
+                  : '戰敗'}
+          </StatusBadge>
+        }
+        isOpen={isResultOpen}
+        layout="fullscreen"
+        onClose={closeResult}
+        returnFocusRef={exploreTriggerRef}
+        title={resultView?.title ?? '探索結果'}
+      >
             {isEncounter ? (
               <div className="my-5 grid flex-1 place-items-center rounded-lg border border-jade-400/20 bg-jade-400/[0.05] p-6 text-center">
                 <div>
@@ -548,9 +439,7 @@ export function ExplorePage() {
                 前往整備
               </Button>
             </footer>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </>
   )
 }

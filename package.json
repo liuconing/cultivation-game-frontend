@@ -14,7 +14,7 @@
     "test:game-mutation": "node --test scripts/game-mutation.test.mjs",
     "test:game-state": "node --test scripts/game-state-adapter.test.mjs",
     "test:architecture": "node --test scripts/architecture-documentation.test.mjs",
-    "test:exploration": "node --test scripts/exploration-result.test.mjs",
+    "test:exploration": "node --test scripts/exploration-result.test.mjs scripts/exploration-playback.test.mjs",
     "test:skills": "node --test scripts/skill-equip.test.mjs",
     "test:api-smoke": "node --env-file-if-exists=.env scripts/api-smoke.mjs",
     "preview": "vite preview"

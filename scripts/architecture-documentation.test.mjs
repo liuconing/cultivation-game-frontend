@@ -9,10 +9,13 @@ const sourceRoot = path.resolve('src')
 const architectureFiles = [
   'session/SessionProvider.tsx',
   'session/session.types.ts',
+  'components/Modal/Modal.tsx',
   'views/gameShell/GameRuntimeProvider.tsx',
   'views/gameShell/game-mutation.ts',
   'views/gameShell/use-game-mutation.ts',
   'views/gameShell/use-game-runtime.ts',
+  'views/gameShell/explore/exploration-playback.ts',
+  'views/gameShell/explore/use-exploration-playback.ts',
 ]
 
 test('架構模組的公開介面、欄位與函式具中文用途註解', async () => {
