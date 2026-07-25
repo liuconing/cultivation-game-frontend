@@ -11,6 +11,7 @@
     "test:error": "node --test scripts/global-error.test.mjs",
     "test:routes": "node --test scripts/route-access.test.mjs",
     "test:character": "node --test scripts/character-create.test.mjs",
+    "test:breakthrough": "node --test scripts/breakthrough-chance.test.mjs",
     "test:game-mutation": "node --test scripts/game-mutation.test.mjs",
     "test:game-state": "node --test scripts/game-state-adapter.test.mjs",
     "test:architecture": "node --test scripts/architecture-documentation.test.mjs",

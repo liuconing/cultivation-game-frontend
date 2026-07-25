@@ -14,6 +14,7 @@ const architectureFiles = [
   'views/gameShell/game-mutation.ts',
   'views/gameShell/use-game-mutation.ts',
   'views/gameShell/use-game-runtime.ts',
+  'views/gameShell/cultivation/breakthrough-chance.view.ts',
   'views/gameShell/explore/exploration-playback.ts',
   'views/gameShell/explore/use-exploration-playback.ts',
 ]

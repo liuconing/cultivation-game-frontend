@@ -18,6 +18,7 @@ import { useFetch } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useGameMutation } from '../use-game-mutation'
 import { useGameRuntime } from '../use-game-runtime'
+import { createBreakthroughChancePresentation } from './breakthrough-chance.view'
 
 /** 不需要額外 request body 的遊戲操作意圖。 */
 type EmptyGameIntent = Record<string, never>
@@ -132,6 +133,8 @@ export function CultivationPage() {
     })
 
   const preview = breakthroughPreviewQuery.data?.data
+  const chancePresentation =
+    createBreakthroughChancePresentation(preview?.chance)
   const breakthroughPreviewError = breakthroughPreviewQuery.error
     ? getApiClientError(breakthroughPreviewQuery.error).message
     : null
@@ -270,21 +273,16 @@ export function CultivationPage() {
             />
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                ['基礎', preview?.chance?.base ?? 0],
-                ['靈根', preview?.chance?.spiritualRoot ?? 0],
-                ['氣運', preview?.chance?.luck ?? 0],
-                ['丹藥', preview?.chance?.pill ?? 0],
-                ['功法', preview?.chance?.cultivationMethod ?? 0],
-                ['保底', preview?.chance?.pity ?? 0],
-              ].map(([label, value]) => (
+              {chancePresentation.rows.map((row) => (
                 <div
                   className="min-w-0 rounded-md border border-white/10 bg-black/15 p-3"
-                  key={label}
+                  key={row.id}
                 >
-                  <p className="truncate text-xs text-neutral-600">{label}</p>
+                  <p className="truncate text-xs text-neutral-600">
+                    {row.label}
+                  </p>
                   <p className="mt-1 tabular-nums text-neutral-200">
-                    +{value}%
+                    {row.formattedValue}
                   </p>
                 </div>
               ))}
@@ -294,9 +292,14 @@ export function CultivationPage() {
               <div>
                 <p className="text-xs text-neutral-500">最終成功率</p>
                 <p className="mt-1 font-serif text-3xl tabular-nums text-gold-100">
-                  {preview?.chance?.final ?? 0}
+                  {chancePresentation.final}
                   %
                 </p>
+                {chancePresentation.limitMessage ? (
+                  <p className="mt-1 text-xs text-gold-100">
+                    {chancePresentation.limitMessage}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-xs text-neutral-600">
                   費用{' '}
                   {(preview?.spiritStoneCost ?? 0).toLocaleString()} 靈石・
@@ -430,7 +433,7 @@ export function CultivationPage() {
           <strong className="text-gold-100">
             {(preview?.spiritStoneCost ?? 0).toLocaleString()} 靈石
           </strong>
-          ，以 {preview?.chance?.final ?? 0}% 成功率突破。
+          ，以 {chancePresentation.final}% 成功率突破。
         </p>
         <dl className="mt-4 grid grid-cols-2 gap-2">
           {[
