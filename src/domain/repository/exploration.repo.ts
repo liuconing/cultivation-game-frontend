@@ -70,6 +70,34 @@ export interface ExplorationCharacterAfter {
   stats: CharacterStats
 }
 
+/** 戰鬥參與者在交手前後的權威屬性摘要。 */
+export interface BattleParticipantSummary {
+  /** 戰鬥參與者的唯一識別碼。 */
+  id: string
+  /** 戰鬥參與者的顯示名稱。 */
+  name: string
+  /** 戰鬥參與者進入戰鬥時的大境界。 */
+  realm: Realm
+  /** 套用戰鬥效果後、尚未開始交手的屬性。 */
+  before: CharacterStats
+  /** 戰鬥停止當下、尚未套用探索善後規則的屬性。 */
+  after: CharacterStats
+}
+
+/** 後端戰鬥引擎提供的權威結算摘要。 */
+export interface ExplorationBattleSummary {
+  /** 戰鬥引擎判定的勝敗。 */
+  result: 'win' | 'loss'
+  /** 戰鬥因一方倒下或達到回合上限而停止。 */
+  reason: 'defeated' | 'turn_limit'
+  /** 戰鬥實際執行的回合數。 */
+  rounds: number
+  /** 玩家在戰鬥前後的狀態。 */
+  player: BattleParticipantSummary
+  /** 敵人在戰鬥前後的狀態。 */
+  enemy: BattleParticipantSummary
+}
+
 /** 發起探索需要的 request body。 */
 export interface ExploreParams {
   /** 要進行探索的地圖 ID。 */
@@ -86,6 +114,8 @@ export interface ExplorationData {
   result: 'win' | 'loss' | 'none'
   /** 戰鬥事件的逐回合紀錄，非戰鬥事件時省略。 */
   battleLog?: BattleLogEntry[]
+  /** 戰鬥事件的權威摘要；舊版後端或非戰鬥事件可能省略。 */
+  battleSummary?: ExplorationBattleSummary
   /** 本次探索獲得的所有獎勵。 */
   rewards: ExplorationReward[]
   /** 本次探索建立的裝備 instances。 */

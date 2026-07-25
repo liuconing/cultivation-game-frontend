@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { GameViewBattleLogEntry } from '../game-view-state'
 import {
+  advanceExplorationPlayback,
+  createExplorationPlaybackState,
   explorationPlaybackIntervalMs,
-  getInitialPlaybackCount,
-  getNextPlaybackCount,
+  type ExplorationPlaybackPhase,
+  type ExplorationPlaybackState,
 } from './exploration-playback'
 
 /** 探索戰鬥播放 hook 的輸入。 */
@@ -22,10 +24,20 @@ export interface ExplorationPlayback {
   visibleBattleLog: GameViewBattleLogEntry[]
   /** 目前已顯示的紀錄筆數。 */
   visibleCount: number
-  /** 是否已顯示全部戰鬥紀錄。 */
-  isComplete: boolean
+  /** 目前處於逐筆播放、結算等待或結果揭示階段。 */
+  phase: ExplorationPlaybackPhase
+  /** 勝敗、結算與獎勵是否可以同時顯示。 */
+  isOutcomeRevealed: boolean
   /** 應掛在捲動容器上的 ref，用於新紀錄出現時自動捲到底部。 */
   scrollContainerRef: RefObject<HTMLOListElement | null>
+}
+
+/** Hook 內部用來隔離不同戰鬥播放來源的狀態。 */
+interface InternalPlaybackState {
+  /** 開關、戰鬥 ID 與紀錄長度組成的播放來源。 */
+  source: string
+  /** 目前戰鬥的純播放狀態。 */
+  state: ExplorationPlaybackState
 }
 
 /**
@@ -42,48 +54,65 @@ export function useExplorationPlayback({
   battleId,
   battleLog,
 }: UseExplorationPlaybackInput): ExplorationPlayback {
-  const [playback, setPlayback] = useState({
-    /** 用來辨識是否已切換至另一場戰鬥。 */
-    source: '',
-    /** 目前已依序顯示的紀錄筆數。 */
-    visibleCount: 0,
-  })
+  const [playback, setPlayback] =
+    useState<InternalPlaybackState>({
+      /** 初始關閉來源不會啟動計時器。 */
+      source: 'closed:none:0',
+      /** 關閉時不顯示戰報或結果。 */
+      state: { phase: 'idle', visibleCount: 0 },
+    })
   const scrollContainerRef = useRef<HTMLOListElement>(null)
-  const source = `${isOpen ? 'open' : 'closed'}:${battleId ?? 'none'}`
+  const source = `${isOpen ? 'open' : 'closed'}:${battleId ?? 'none'}:${battleLog.length}`
+  const initialState = isOpen
+    ? createExplorationPlaybackState(battleLog.length)
+    : { phase: 'idle' as const, visibleCount: 0 }
+  const activeState =
+    playback.source === source ? playback.state : initialState
 
   if (playback.source !== source) {
+    // React 會在提交畫面前以新來源重跑本次 render，避免切換戰鬥時
+    // 短暫顯示上一場的勝敗或播放進度。
     setPlayback({
       source,
-      visibleCount: isOpen
-        ? getInitialPlaybackCount(battleLog.length)
-        : 0,
+      state: initialState,
     })
   }
 
-  const visibleCount =
-    playback.source === source ? playback.visibleCount : 0
-  const isComplete = visibleCount >= battleLog.length
-
   useEffect(() => {
-    if (!isOpen || isComplete) {
+    if (
+      !isOpen ||
+      activeState.phase === 'idle' ||
+      activeState.phase === 'revealed'
+    ) {
       return
     }
 
     const timeoutId = window.setTimeout(() => {
-      // 播放狀態每次只增加一筆，讓長戰鬥保留可讀節奏。
-      setPlayback((current) => ({
-        ...current,
-        visibleCount: getNextPlaybackCount(
-          current.visibleCount,
-          battleLog.length,
-        ),
-      }))
+      // playing 每次增加一筆；settling 再保留一個完整刻度，
+      // 確保最後一筆戰報可讀完後才揭示勝敗與獎勵。
+      setPlayback((current) =>
+        current.source === source
+          ? {
+              ...current,
+              state: advanceExplorationPlayback(
+                current.state,
+                battleLog.length,
+              ),
+            }
+          : current,
+      )
     }, explorationPlaybackIntervalMs)
 
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [battleLog.length, isComplete, isOpen, visibleCount])
+  }, [
+    activeState.phase,
+    activeState.visibleCount,
+    battleLog.length,
+    isOpen,
+    source,
+  ])
 
   useEffect(() => {
     if (!isOpen || !scrollContainerRef.current) {
@@ -94,12 +123,16 @@ export function useExplorationPlayback({
       behavior: 'smooth',
       top: scrollContainerRef.current.scrollHeight,
     })
-  }, [isOpen, visibleCount])
+  }, [isOpen, activeState.visibleCount])
 
   return {
-    visibleBattleLog: battleLog.slice(0, visibleCount),
-    visibleCount,
-    isComplete,
+    visibleBattleLog: battleLog.slice(
+      0,
+      activeState.visibleCount,
+    ),
+    visibleCount: activeState.visibleCount,
+    phase: activeState.phase,
+    isOutcomeRevealed: activeState.phase === 'revealed',
     scrollContainerRef,
   }
 }

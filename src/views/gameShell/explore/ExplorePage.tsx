@@ -44,7 +44,8 @@ export function ExplorePage() {
   const {
     visibleBattleLog,
     visibleCount: visibleBattleLogCount,
-    isComplete: isBattlePlaybackComplete,
+    phase: battlePlaybackPhase,
+    isOutcomeRevealed,
     scrollContainerRef: battleLogRef,
   } = useExplorationPlayback({
     isOpen: isResultOpen,
@@ -52,6 +53,8 @@ export function ExplorePage() {
     battleLog: battle?.log ?? [],
   })
   const isEncounter = resultView?.kind === 'event'
+  const canRevealBattleOutcome =
+    isEncounter || isOutcomeRevealed
   const hasLowResources =
     gameState.character.health / gameState.character.maxHealth < 0.3 ||
     gameState.character.spiritPower /
@@ -222,12 +225,19 @@ export function ExplorePage() {
         headerAccessory={
           <StatusBadge
             tone={
-              isEncounter || battle?.result === 'victory'
-                ? 'jade'
-                : 'cinnabar'
+              !canRevealBattleOutcome
+                ? 'gold'
+                : isEncounter ||
+                    battle?.result === 'victory'
+                  ? 'jade'
+                  : 'cinnabar'
             }
           >
-            {isEncounter
+            {!canRevealBattleOutcome
+              ? battlePlaybackPhase === 'settling'
+                ? '結算中'
+                : '推演中'
+              : isEncounter
               ? '奇遇'
               : battle?.result === 'victory'
                 ? battle.firstKill
@@ -242,7 +252,11 @@ export function ExplorePage() {
         layout="fullscreen"
         onClose={closeResult}
         returnFocusRef={exploreTriggerRef}
-        title={resultView?.title ?? '探索結果'}
+        title={
+          canRevealBattleOutcome
+            ? resultView?.title ?? '探索結果'
+            : '戰鬥推演'
+        }
       >
             {isEncounter ? (
               <div className="my-5 grid flex-1 place-items-center rounded-lg border border-jade-400/20 bg-jade-400/[0.05] p-6 text-center">
@@ -271,7 +285,13 @@ export function ExplorePage() {
                 </div>
               </div>
             ) : (
-              <div className="grid min-h-0 flex-1 gap-4 py-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.7fr)]">
+              <div
+                className={`grid min-h-0 flex-1 gap-4 py-5 ${
+                  isOutcomeRevealed
+                    ? 'lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.7fr)]'
+                    : ''
+                }`}
+              >
                 <section className="flex min-h-0 min-w-0 flex-col rounded-lg border border-white/12 bg-ink-900/70 p-4 sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
@@ -283,17 +303,23 @@ export function ExplorePage() {
                         className="mt-1 text-xs text-neutral-500"
                         role="status"
                       >
-                        {isBattlePlaybackComplete
+                        {battlePlaybackPhase === 'revealed'
                           ? `推演完成，共 ${battle?.log.length ?? 0} 次行動`
-                          : `推演中・${visibleBattleLogCount}／${battle?.log.length ?? 0}`}
+                          : battlePlaybackPhase === 'settling'
+                            ? '戰報已完整顯示，正在結算'
+                            : `推演中・${visibleBattleLogCount}／${battle?.log.length ?? 0}`}
                       </p>
                     </div>
                     <StatusBadge
                       tone={
-                        isBattlePlaybackComplete ? 'jade' : 'gold'
+                        isOutcomeRevealed ? 'jade' : 'gold'
                       }
                     >
-                      {isBattlePlaybackComplete ? '已結算' : '進行中'}
+                      {isOutcomeRevealed
+                        ? '已結算'
+                        : battlePlaybackPhase === 'settling'
+                          ? '結算中'
+                          : '進行中'}
                     </StatusBadge>
                   </div>
                   <ol
@@ -349,6 +375,7 @@ export function ExplorePage() {
                   </ol>
                 </section>
 
+                {isOutcomeRevealed ? (
                 <aside className="grid min-w-0 content-start gap-4">
                   <section className="rounded-lg border border-white/12 bg-ink-900/70 p-4">
                     <h3 className="font-serif text-lg text-neutral-100">
@@ -359,16 +386,22 @@ export function ExplorePage() {
                         ['敵人', battle?.enemyName ?? '未知'],
                         ['回合', `${battle?.rounds ?? 0}`],
                         [
-                          '剩餘生命',
-                          `${battle?.healthRemaining ?? 0}`,
+                          '戰鬥結束生命',
+                          battle?.healthRemaining === undefined
+                            ? '—'
+                            : battle.healthRemaining.toLocaleString(),
                         ],
                         [
-                          '剩餘靈力',
-                          `${battle?.spiritRemaining ?? 0}`,
+                          '戰鬥結束靈力',
+                          battle?.spiritRemaining === undefined
+                            ? '—'
+                            : battle.spiritRemaining.toLocaleString(),
                         ],
                         [
                           '敵方生命',
-                          `${battle?.enemyHealthRemaining ?? 0}`,
+                          battle?.enemyHealthRemaining === undefined
+                            ? '—'
+                            : battle.enemyHealthRemaining.toLocaleString(),
                         ],
                         [
                           '狀態',
@@ -390,6 +423,30 @@ export function ExplorePage() {
                         </div>
                       ))}
                     </dl>
+                    {!battle?.hasAuthoritativeSummary ? (
+                      <p className="mt-3 text-xs leading-5 text-gold-100">
+                        舊版回應未提供權威戰鬥摘要，未知數值不進行推算。
+                      </p>
+                    ) : null}
+                    {battle?.settledHealthRemaining !== undefined ||
+                    battle?.settledSpiritRemaining !== undefined ? (
+                      <div className="mt-3 rounded border border-cinnabar-400/20 bg-cinnabar-400/[0.05] p-3 text-xs leading-5 text-neutral-400">
+                        <p className="font-medium text-cinnabar-100">
+                          戰敗返回洞府後
+                        </p>
+                        <p className="mt-1 tabular-nums">
+                          生命{' '}
+                          {battle.settledHealthRemaining?.toLocaleString() ??
+                            '—'}
+                          {' ・ '}靈力{' '}
+                          {battle.settledSpiritRemaining?.toLocaleString() ??
+                            '—'}
+                        </p>
+                        <p className="mt-1 text-neutral-600">
+                          戰敗善後會保留 30% 生命與靈力，此數值不同於戰鬥停止當下。
+                        </p>
+                      </div>
+                    ) : null}
                   </section>
 
                   <section className="rounded-lg border border-gold-400/20 bg-gold-400/[0.05] p-4">
@@ -411,6 +468,7 @@ export function ExplorePage() {
                     )}
                   </section>
                 </aside>
+                ) : null}
               </div>
             )}
 
@@ -418,9 +476,12 @@ export function ExplorePage() {
               <Button onClick={closeResult} variant="ghost">
                 返回探索
               </Button>
-              <Button onClick={handleGoToLoadout}>
-                前往整備
-              </Button>
+              {canRevealBattleOutcome &&
+              (resultView?.createdEquipmentIds.length ?? 0) > 0 ? (
+                <Button onClick={handleGoToLoadout}>
+                  前往整備
+                </Button>
+              ) : null}
             </footer>
       </Modal>
     </>

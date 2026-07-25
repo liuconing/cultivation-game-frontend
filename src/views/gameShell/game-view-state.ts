@@ -90,12 +90,18 @@ export interface GameViewBattle {
   enemyName?: string
   /** 先手說明。 */
   firstStrike?: string
-  /** 結算後角色生命。 */
+  /** 戰鬥停止當下的角色生命。 */
   healthRemaining?: number
-  /** 結算後角色靈力。 */
+  /** 戰鬥停止當下的角色靈力。 */
   spiritRemaining?: number
-  /** 結算後敵人生命。 */
+  /** 戰鬥停止當下的敵人生命。 */
   enemyHealthRemaining?: number
+  /** 探索善後完成後角色的生命；僅與戰鬥結束值不同時提供。 */
+  settledHealthRemaining?: number
+  /** 探索善後完成後角色的靈力；僅與戰鬥結束值不同時提供。 */
+  settledSpiritRemaining?: number
+  /** 後端是否提供可安全顯示的權威戰鬥摘要。 */
+  hasAuthoritativeSummary: boolean
   /** 是否為 Boss 首次擊殺。 */
   firstKill?: boolean
 }

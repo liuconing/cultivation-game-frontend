@@ -71,18 +71,40 @@ export const createExplorationResultView = (
   }
 
   const log = result.battleLog ?? []
-  const rounds = log.reduce(
-    (maximum, entry) => Math.max(maximum, entry.round),
-    0,
-  )
-  const victory = result.result === 'win'
+  const summary = result.battleSummary
+  const rounds =
+    summary?.rounds ??
+    log.reduce(
+      (maximum, entry) => Math.max(maximum, entry.round),
+      0,
+    )
+  const battleResult =
+    summary?.reason === 'turn_limit'
+      ? 'turn-limit'
+      : (summary?.result ?? result.result) === 'win'
+        ? 'victory'
+        : 'defeat'
+  const title =
+    battleResult === 'victory'
+      ? '探索勝利'
+      : battleResult === 'turn-limit'
+        ? '回合上限'
+        : '探索失利'
+  const battleHealth = summary?.player.after.currentHp
+  const battleSpirit = summary?.player.after.currentMp
+  const settledHealth = result.characterAfter.stats.currentHp
+  const settledSpirit = result.characterAfter.stats.currentMp
+  const hasSettlementAdjustment =
+    summary !== undefined &&
+    (battleHealth !== settledHealth ||
+      battleSpirit !== settledSpirit)
 
   return {
     kind: 'battle',
-    title: victory ? '探索勝利' : '探索失利',
+    title,
     battle: {
       id: result.seedReference,
-      result: victory ? 'victory' : 'defeat',
+      result: battleResult,
       rounds,
       log: log.map((entry) => ({
         round: entry.round,
@@ -95,13 +117,19 @@ export const createExplorationResultView = (
         targetHp: entry.targetHp,
       })),
       rewards: mapRewards(result),
-      title: victory ? '戰鬥勝利' : '戰鬥失利',
-      enemyName: '探索對手',
+      title,
+      enemyName: summary?.enemy.name ?? '戰鬥摘要未提供',
       firstStrike: log[0]?.message ?? '戰鬥已由後端結算。',
-      healthRemaining: result.characterAfter.stats.currentHp,
-      spiritRemaining: result.characterAfter.stats.currentMp,
-      enemyHealthRemaining:
-        log.at(-1)?.targetHp ?? (victory ? 0 : undefined),
+      healthRemaining: battleHealth,
+      spiritRemaining: battleSpirit,
+      enemyHealthRemaining: summary?.enemy.after.currentHp,
+      settledHealthRemaining: hasSettlementAdjustment
+        ? settledHealth
+        : undefined,
+      settledSpiritRemaining: hasSettlementAdjustment
+        ? settledSpirit
+        : undefined,
+      hasAuthoritativeSummary: summary !== undefined,
       firstKill: result.rewards.some(
         (reward) => reward.type === 'spiritual_root_essence',
       ),
