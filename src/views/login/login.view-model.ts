@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type RefObject } from 'react'
+import { useRef, useState, type SubmitEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { loginUserUsecase, registerUserUsecase } from '@/domain'
 import {
@@ -167,7 +167,7 @@ export function useLoginViewModel() {
    *
    * @param event - React 表單送出事件。
    */
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault()
     if (isSubmitting) {
       return
