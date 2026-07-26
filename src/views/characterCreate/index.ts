@@ -1,1 +1,1 @@
-export { default as CharacterCreateView } from './character-create.view-controller'
+export { default as CharacterCreateView } from './characterCreate.view-controller'

@@ -9,6 +9,8 @@ import {
   validateCharacterCreation,
   type CharacterCreationErrors,
   type CharacterCreationValues,
+  type CharacterGender,
+  type SpiritualRootType,
 } from '@/data/characterCreationMock'
 import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
@@ -134,7 +136,7 @@ export function useCharacterCreateViewModel() {
     /** 靈根欄位群組 ref。 */
     spiritualRootRef,
     /** 更新角色姓名。 */
-    handleNameChange: (name) => {
+    handleNameChange: (name: string) => {
       setValues((currentValues) => ({ ...currentValues, name }))
       setErrors((currentErrors) => ({
         ...currentErrors,
@@ -143,7 +145,7 @@ export function useCharacterCreateViewModel() {
       setNotice(null)
     },
     /** 更新角色性別。 */
-    handleGenderChange: (gender) => {
+    handleGenderChange: (gender: CharacterGender) => {
       setValues((currentValues) => ({ ...currentValues, gender }))
       setErrors((currentErrors) => ({
         ...currentErrors,
@@ -152,7 +154,7 @@ export function useCharacterCreateViewModel() {
       setNotice(null)
     },
     /** 更新角色靈根類型。 */
-    handleSpiritualRootChange: (spiritualRootType) => {
+    handleSpiritualRootChange: (spiritualRootType: SpiritualRootType) => {
       setValues((currentValues) => ({
         ...currentValues,
         spiritualRootType,
