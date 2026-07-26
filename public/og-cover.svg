@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">問仙・文字放置修仙</title>
+  <desc id="description">玄墨山河間，一位修士靜坐修煉，搭配問仙印章與一念入道、萬劫問仙文案</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070908"/>
+      <stop offset=".56" stop-color="#101512"/>
+      <stop offset="1" stop-color="#0c1510"/>
+    </linearGradient>
+    <radialGradient id="jadeGlow" cx=".76" cy=".31" r=".48">
+      <stop offset="0" stop-color="#5aa77f" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#5aa77f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldLine" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#695429" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#c3a968"/>
+      <stop offset="1" stop-color="#695429" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <rect width="1200" height="630" fill="url(#jadeGlow)"/>
+  <path d="M0 450c110-98 207-118 290-58 63 46 130 42 202-10 96-69 186-57 269 36 74 83 143 76 207 16 70-66 148-71 232-15v211H0z" fill="#f5f5f5" opacity=".07"/>
+  <path d="M0 510c126-68 239-72 338-13 81 48 161 43 239-16 91-68 185-63 281 15 86 70 200 66 342-14v148H0z" fill="#d8efe5" opacity=".055"/>
+  <path d="M640 110c144-47 277-38 400 28" fill="none" stroke="#f5f5f5" stroke-width="18" stroke-linecap="round" opacity=".045"/>
+
+  <g transform="translate(830 136)" opacity=".55">
+    <circle cx="120" cy="70" r="39" fill="#f5f5f5" opacity=".24"/>
+    <path d="M72 139c9-42 87-42 97 0l15 72H57z" fill="#f5f5f5" opacity=".2"/>
+    <path d="M0 286c47-50 91-66 132-49 43-17 87-1 133 49-66 21-112 15-138-18-26 33-68 39-127 18z" fill="#f5f5f5" opacity=".18"/>
+    <path d="M-44 287c112 52 234 52 350 0" fill="none" stroke="#f5f5f5" stroke-width="12" stroke-linecap="round" opacity=".12"/>
+    <circle cx="120" cy="174" r="118" fill="none" stroke="#87c6a5" stroke-width="2" opacity=".16"/>
+    <circle cx="120" cy="174" r="151" fill="none" stroke="#c3a968" stroke-width="2" opacity=".17"/>
+  </g>
+
+  <g transform="translate(80 74)">
+    <rect width="82" height="82" rx="20" fill="#101512" stroke="#c3a968" stroke-width="3"/>
+    <circle cx="41" cy="41" r="32" fill="none" stroke="#695429" stroke-width="1.5" stroke-dasharray="3 4"/>
+    <path d="M16 61c9-7 17-8 24-2 6 5 13 4 27-4" fill="none" stroke="#87c6a5" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+    <circle cx="62" cy="19" r="5" fill="#b95f50"/>
+    <text x="41" y="55" fill="#f2e6c8" font-family="'Noto Serif TC','PMingLiU',serif" font-size="39" font-weight="700" text-anchor="middle">問</text>
+  </g>
+
+  <text x="80" y="237" fill="#dfc991" font-family="'Noto Serif TC','PMingLiU',serif" font-size="22" letter-spacing="9">一念入道・萬劫問仙</text>
+  <text x="76" y="350" fill="#f5f5f5" font-family="'Noto Serif TC','PMingLiU',serif" font-size="96" font-weight="700" letter-spacing="12">問仙</text>
+  <rect x="80" y="383" width="450" height="2" fill="url(#goldLine)"/>
+  <text x="80" y="438" fill="#d4d4d4" font-family="'Noto Sans TC','Microsoft JhengHei',sans-serif" font-size="28" letter-spacing="4">繁體中文・單人文字放置修仙</text>
+  <text x="80" y="492" fill="#8d9690" font-family="'Noto Sans TC','Microsoft JhengHei',sans-serif" font-size="20">修煉・探索戰鬥・功法整備・洞府休養・境界突破</text>
+  <text x="80" y="562" fill="#87c6a5" font-family="Inter,'Noto Sans TC',sans-serif" font-size="17" letter-spacing="3">CULTIVATION CHRONICLE</text>
+</svg>

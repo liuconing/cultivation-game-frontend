@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /game/
+Disallow: /character/
+Disallow: /login
+Disallow: /register
+Disallow: /foundation
+
+Sitemap: https://cultivation-game-frontend.zeabur.app/sitemap.xml
