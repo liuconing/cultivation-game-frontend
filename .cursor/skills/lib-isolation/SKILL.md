@@ -23,11 +23,11 @@ description: >-
 
 | 模式 | 適用場景 | 範例套件 |
 |------|----------|----------|
-| **A — 全量 re-export** | API 穩定、不需 tree-shaking | pinia |
+| **A — 全量 re-export** | API 穩定、不需 tree-shaking | @tanstack/react-query |
 | **B — 選擇性 re-export** | tree-shaking / 限制對外 API | lodash, bignumber.js |
 | **C — 重命名 / alias** | 統一命名、隱藏原始 API | uuid |
 | **D — 設定實例** | 需要初始化 config 或 interceptor | axios |
-| **E — CSS 副作用 + 選擇性匯出** | UI 元件需要 import 樣式 | element-plus |
+| **E — CSS 副作用 + 選擇性匯出** | UI 元件需要 import 樣式 | react-toastify 這類需匯入 CSS 的 UI 套件 |
 
 ## 各模式範本
 
@@ -87,18 +87,17 @@ export { SomePkg, ComponentA }
 
 | 路徑 | 原始套件 | 模式 |
 |------|----------|------|
-| `@/lib/axios` | axios | D |
-| `@/lib/vue-query` | @tanstack/vue-query | A + 額外型別 |
-| `@/lib/pinia` | pinia | A |
-| `@/lib/lodash` | lodash | B |
+| `@/lib/axios` | axios | D（建立 `apiClient` 實例＋interceptor） |
+| `@/lib/react-query` | @tanstack/react-query | A |
+| `@/lib/lodash` | lodash | B（逐方法 cherry-pick） |
 | `@/lib/bigNumber` | bignumber.js | B |
-| `@/lib/uuid` | uuid | C |
-| `@/lib/element-plus` | element-plus | E |
-| `@/lib/local-storage` | — | 自訂實作（無第三方） |
+| `@/lib/classix` | classix | B |
+| `@/lib/crypto-js` | crypto-js | B |
+| `@/lib/uuid` | uuid | C（`v4` 重命名為 `uuid`） |
+| `@/lib/zustand` | zustand | B（`create`、`persist` 與型別） |
 
 ## 注意事項
 
 - 排除下列套件，**不需要** `src/lib` 封裝：VUE、REACT、VITE、react-router、vue-router、tailwindcss、nuxt、nextJS
-- `local-storage` 是自訂實作，不對應第三方套件，不套用此流程
-- 若套件有自訂型別需求，在同資料夾建立 `interface.ts`，參考 `src/lib/local-storage/interface.ts`
+- 若套件有自訂型別需求，在同資料夾建立 `interface.ts` 並在 `index.ts` 中 import
 - 封裝層只做「隔離與配置」，不放業務邏輯；業務邏輯屬於 `src/domain/`

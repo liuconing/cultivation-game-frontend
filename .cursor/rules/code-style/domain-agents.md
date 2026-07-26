@@ -13,7 +13,7 @@ alwaysApply: false
 - 只有任務會讀取、修改、建立、刪除 `domain/**` 內容時，才讀取本規則。
 - 任務未涉及 `domain/**` 時，略過本規則。
 - 不因為專案存在 `domain` 資料夾就自動套用本規則。
-- 若新增或修改 domain 內的 TS / JS 程式碼，同時套用 `.cursor/rules/code-style/ts-js-code-style.md`。
+- 若新增或修改 domain 內的 TS / JS 程式碼，同時套用 `.cursor/rules/code-style/js-ts-code-style.md`。
 
 ## 規則位置
 
@@ -27,7 +27,7 @@ alwaysApply: false
 - `domain` 資料夾負責資料存取邏輯與商業邏輯。
 - `domain` 可包含 repository 層與 usecase 層。
 - `domain` 不處理 UI 畫面狀態。
-- View 狀態交由 View 層、Composable 或 Pinia store 管理。
+- View 狀態交由 View 層、View-Model hook 或 zustand store 管理。
 
 ## 架構分層
 
@@ -48,7 +48,7 @@ domain/
 
 ## Domain 邊界
 
-- 不在 domain 層加入 UI component、router、Pinia store、DOM 操作。
+- 不在 domain 層加入 UI component、router、zustand store、DOM 操作。
 - 不在 domain 層處理框架生命週期。
 - 不任意跨 domain 引用內部實作。
 - 不將 View 專用格式直接寫入 repository。

@@ -10,5 +10,11 @@ Before editing code, read `AGENTS.md`.
 Then load only the matching rule files based on the files being changed:
 
 - JS / TS files: `.cursor/rules/code-style/js-ts-code-style.md`, `.cursor/rules/code-style/jsdoc-rule.md`
+- React files (`*.tsx` / `*.jsx`): `.cursor/rules/code-style/react-code-style.md`
+- `src/views/**`: `.cursor/rules/code-style/react-view-structure.md`
+- `src/components/**`: `.cursor/rules/code-style/components-structure.md`
+- `src/domain/**`: `.cursor/rules/code-style/domain-agents.md`
+- Adding / moving files, or unsure where code belongs: `.cursor/rules/code-style/project-structure.md`
+- Extracting shared hooks / utils / components: `.cursor/rules/code-style/ui-logic-organization.md`
 
 Do not apply Vue-specific naming rules unless the task involves Vue files or Vue Composition API.

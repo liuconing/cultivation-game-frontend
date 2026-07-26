@@ -49,6 +49,29 @@ View 資料夾規則：
 
 - `.cursor/rules/code-style/react-view-structure.md`
 
+### 專案結構與檔案放置規則
+
+讀取條件：
+
+- 新增檔案
+- 搬移檔案或調整資料夾結構
+- 不確定程式碼該放哪個資料夾
+
+規則檔案：
+
+- `.cursor/rules/code-style/project-structure.md`
+
+### UI 邏輯整理規則
+
+讀取條件：
+
+- 新增或調整 UI 顯示邏輯、互動流程或輸出內容邏輯函式
+- 需要抽取共用 hook、util 或元件
+
+規則檔案：
+
+- `.cursor/rules/code-style/ui-logic-organization.md`
+
 ### domain 結構規則
 
 讀取條件：
