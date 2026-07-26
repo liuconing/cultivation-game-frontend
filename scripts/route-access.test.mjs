@@ -4,14 +4,14 @@ import { resolveRouteAccess } from '../src/router/route-access.ts'
 
 const routeCases = [
   {
-    name: '未登入進入遊戲時導向登入並保留來源',
+    name: '未登入進入遊戲時導向首頁並保留來源',
     input: {
       pathname: '/game/explore',
       sessionStatus: 'anonymous',
     },
     expected: {
       kind: 'redirect',
-      to: '/login',
+      to: '/',
       preserveFrom: true,
     },
   },
@@ -61,31 +61,34 @@ const routeCases = [
     expected: { kind: 'allow' },
   },
   {
-    name: '未登入根路徑導向登入',
+    name: '未登入可停留公開首頁',
     input: { pathname: '/', sessionStatus: 'anonymous' },
-    expected: {
-      kind: 'redirect',
-      to: '/login',
-      preserveFrom: false,
-    },
+    expected: { kind: 'allow' },
   },
   {
-    name: '無角色根路徑導向角色建立',
+    name: '無角色可停留公開首頁',
     input: { pathname: '/', sessionStatus: 'noCharacter' },
-    expected: {
-      kind: 'redirect',
-      to: '/character/create',
-      preserveFrom: false,
-    },
+    expected: { kind: 'allow' },
   },
   {
-    name: '有角色根路徑導向預設遊戲頁',
+    name: '有角色可停留公開首頁',
     input: { pathname: '/', sessionStatus: 'ready' },
-    expected: {
-      kind: 'redirect',
-      to: '/game/cultivation',
-      preserveFrom: false,
-    },
+    expected: { kind: 'allow' },
+  },
+  {
+    name: '登入狀態還原期間仍可瀏覽公開首頁',
+    input: { pathname: '/', sessionStatus: 'hydrating' },
+    expected: { kind: 'allow' },
+  },
+  {
+    name: '角色檢查期間仍可瀏覽公開首頁',
+    input: { pathname: '/', sessionStatus: 'checking' },
+    expected: { kind: 'allow' },
+  },
+  {
+    name: '角色檢查錯誤時仍可瀏覽公開首頁',
+    input: { pathname: '/', sessionStatus: 'error' },
+    expected: { kind: 'allow' },
   },
   {
     name: '舊的 game 根路徑只導向一次預設頁',
@@ -119,6 +122,18 @@ const routeCases = [
       sessionStatus: 'hydrating',
     },
     expected: { kind: 'allow' },
+  },
+  {
+    name: '未登入進入角色建立時導向首頁並保留來源',
+    input: {
+      pathname: '/character/create',
+      sessionStatus: 'anonymous',
+    },
+    expected: {
+      kind: 'redirect',
+      to: '/',
+      preserveFrom: true,
+    },
   },
   {
     name: '未知路徑回到狀態入口',

@@ -10,13 +10,15 @@ const architectureFiles = [
   'session/SessionProvider.tsx',
   'session/session.types.ts',
   'components/Modal/Modal.tsx',
-  'views/gameShell/GameRuntimeProvider.tsx',
-  'views/gameShell/game-mutation.ts',
-  'views/gameShell/use-game-mutation.ts',
-  'views/gameShell/use-game-runtime.ts',
-  'views/gameShell/cultivation/breakthrough-chance.view.ts',
-  'views/gameShell/explore/exploration-playback.ts',
-  'views/gameShell/explore/use-exploration-playback.ts',
+  'containers/GameRuntimeProvider/GameRuntimeProvider.tsx',
+  'hook/useGameMutation.ts',
+  'views/gameShell/explore/explorationResultAdapter.ts',
+  'views/gameShell/explore/hook/useExplorationPlayback.ts',
+  'router/route-state.ts',
+  'views/home/home-navigation.ts',
+  'views/home/home.view-model.ts',
+  'views/home/home.view-controller.tsx',
+  'views/foundation/foundation.view-model.ts',
 ]
 
 test('架構模組的公開介面、欄位與函式具中文用途註解', async () => {
@@ -77,7 +79,7 @@ test('GameState 投影流程說明資料轉換順序', async () => {
   const content = await readFile(
     path.join(
       sourceRoot,
-      'views/gameShell/GameRuntimeProvider.tsx',
+      'containers/GameRuntimeProvider/GameRuntimeProvider.tsx',
     ),
     'utf8',
   )

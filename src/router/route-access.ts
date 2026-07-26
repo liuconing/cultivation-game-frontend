@@ -43,8 +43,8 @@ export type RouteAccessResult =
   | LoadingRouteAccess
   | ErrorRouteAccess
 
-/** 不依賴 session 的公開工具頁。 */
-const publicUtilityPaths = new Set(['/foundation'])
+/** 不依賴 session 的公開首頁與工具頁。 */
+const publicPaths = new Set(['/', '/foundation'])
 
 /** 僅供未登入使用者使用的認證路徑。 */
 const authPaths = new Set(['/login', '/register'])
@@ -80,7 +80,7 @@ export const resolveRouteAccess = ({
   pathname,
   sessionStatus,
 }: RouteAccessInput): RouteAccessResult => {
-  if (publicUtilityPaths.has(pathname)) {
+  if (publicPaths.has(pathname)) {
     return { kind: 'allow' }
   }
 
@@ -93,16 +93,6 @@ export const resolveRouteAccess = ({
 
   if (sessionStatus === 'error') {
     return { kind: 'error' }
-  }
-
-  if (pathname === '/') {
-    if (sessionStatus === 'anonymous') {
-      return redirectTo('/login')
-    }
-    if (sessionStatus === 'noCharacter') {
-      return redirectTo('/character/create')
-    }
-    return redirectTo('/game/cultivation')
   }
 
   if (authPaths.has(pathname)) {
@@ -119,7 +109,7 @@ export const resolveRouteAccess = ({
     if (sessionStatus === 'anonymous') {
       return {
         kind: 'redirect',
-        to: '/login',
+        to: '/',
         preserveFrom: true,
       }
     }
@@ -133,7 +123,7 @@ export const resolveRouteAccess = ({
     if (sessionStatus === 'anonymous') {
       return {
         kind: 'redirect',
-        to: '/login',
+        to: '/',
         preserveFrom: true,
       }
     }

@@ -1,62 +1,47 @@
-import { useState } from 'react'
+import { useLocation } from 'react-router'
+import { getPreservedRoute } from '@/router/route-state'
+import { useSession } from '@/session'
+import { useAuthStore } from '@/stores'
 import {
-  mockScenarioOptions,
-  type MockScenario,
-} from '@/data/gameMock'
-import { useMockGameStore } from '@/stores'
+  resolveHomeAction,
+  type HomeAction,
+} from './home-navigation'
 
-type FoundationTab = 'controls' | 'fixtures' | 'states'
-
+/** 公開遊戲介紹首頁需要的 Session 狀態與操作。 */
 export interface IHomeViewModel {
-  gameState: ReturnType<typeof useMockGameStore.getState>['gameState']
-  scenarioOptions: typeof mockScenarioOptions
-  selectedTab: FoundationTab
-  isModalOpen: boolean
-  isDrawerOpen: boolean
-  handleScenarioChange: (scenario: MockScenario) => void
-  handleTabChange: (tab: FoundationTab) => void
-  handleClaimCultivation: () => void
-  handleReset: () => void
-  handleOpenModal: () => void
-  handleCloseModal: () => void
-  handleOpenDrawer: () => void
-  handleCloseDrawer: () => void
+  /** Header 與 Hero 共用的狀態操作。 */
+  action: HomeAction
+  /** 是否需要提醒使用者登入憑證已失效。 */
+  hasInvalidSessionNotice: boolean
+  /** 重新向後端確認目前登入與角色狀態。 */
+  handleRetrySession: () => void
+  /** 關閉登入憑證失效提示。 */
+  handleDismissSessionNotice: () => void
 }
 
-/** 管理 UI-01 foundation showcase 的展示狀態。 */
+/**
+ * 管理公開首頁的 Session 操作與失效憑證提示。
+ *
+ * 首頁本身不載入 GameState；只讀取既有 Session 狀態決定入口，
+ * 避免公開內容依賴遊戲 API 才能顯示。
+ *
+ * @returns 公開首頁所需的唯讀狀態與操作。
+ */
 export function useHomeViewModel(): IHomeViewModel {
-  const gameState = useMockGameStore((state) => state.gameState)
-  const setScenario = useMockGameStore((state) => state.setScenario)
-  const claimCultivation = useMockGameStore(
-    (state) => state.claimCultivation,
+  const location = useLocation()
+  const { status, reloadSession } = useSession()
+  const sessionNotice = useAuthStore((state) => state.sessionNotice)
+  const clearSessionNotice = useAuthStore(
+    (state) => state.clearSessionNotice,
   )
-  const reset = useMockGameStore((state) => state.reset)
-  const [selectedTab, setSelectedTab] =
-    useState<FoundationTab>('controls')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const preservedRoute = getPreservedRoute(location.state)
 
   return {
-    gameState,
-    scenarioOptions: mockScenarioOptions,
-    selectedTab,
-    isModalOpen,
-    isDrawerOpen,
-    handleScenarioChange: setScenario,
-    handleTabChange: setSelectedTab,
-    handleClaimCultivation: claimCultivation,
-    handleReset: reset,
-    handleOpenModal: () => {
-      setIsModalOpen(true)
+    action: resolveHomeAction(status, preservedRoute),
+    hasInvalidSessionNotice: sessionNotice === 'invalid',
+    handleRetrySession: () => {
+      void reloadSession()
     },
-    handleCloseModal: () => {
-      setIsModalOpen(false)
-    },
-    handleOpenDrawer: () => {
-      setIsDrawerOpen(true)
-    },
-    handleCloseDrawer: () => {
-      setIsDrawerOpen(false)
-    },
+    handleDismissSessionNotice: clearSessionNotice,
   }
 }

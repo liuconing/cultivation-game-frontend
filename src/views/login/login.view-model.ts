@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { loginUserUsecase, registerUserUsecase, type RegisterUserParamsDto } from '@/domain'
+import { loginUserUsecase, registerUserUsecase } from '@/domain'
 import {
   createInitialAuthFormValues,
   validateAuthForm,
@@ -11,7 +11,9 @@ import {
 } from '@/data/auth'
 import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
+import { getPostAuthRoute } from '@/router/route-state'
 import { useAuthStore } from '@/stores'
+import { submitAuthFlow } from './auth-submit-flow'
 
 /** 登入與註冊 ViewController 需要的狀態與操作。 */
 export interface ILoginViewModel {
@@ -39,65 +41,6 @@ export interface ILoginViewModel {
   handleTogglePassword: () => void
   /** 驗證並送出登入或註冊表單。 */
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void
-}
-
-/** 認證送出流程所需的 API 操作。 */
-interface AuthSubmitOperations<TResult> {
-  /** 建立新帳號；完成後才可進行自動登入。 */
-  register: (credentials: RegisterUserParamsDto) => Promise<unknown>
-  /** 以相同帳密登入並回傳 session 結果。 */
-  login: (credentials: RegisterUserParamsDto) => Promise<TResult>
-}
-
-/** 登入導向所附帶的來源路徑狀態。 */
-interface AuthLocationState {
-  /** 使用者登入前嘗試進入的受保護路徑。 */
-  from?: unknown
-}
-
-/**
- * 從 React Router state 取得安全的站內返回路徑。
- *
- * @param state - 目前 location state。
- * @returns 合法站內路徑；無合法來源時回到根路徑。
- */
-const getReturnPath = (state: unknown): string => {
-  if (!state || typeof state !== 'object') {
-    return '/'
-  }
-
-  const { from } = state as AuthLocationState
-  if (
-    typeof from !== 'string' ||
-    !from.startsWith('/') ||
-    from.startsWith('//') ||
-    from === '/login' ||
-    from === '/register'
-  ) {
-    return '/'
-  }
-
-  return from
-}
-
-/**
- * 依登入或註冊模式循序執行認證 API。
- *
- * @param mode - 目前表單模式。
- * @param credentials - 已通過前端驗證的 Email 與密碼。
- * @param operations - 可替換測試的註冊與登入操作。
- * @returns 登入 API 的 session 結果。
- */
-const submitAuthFlow = async <TResult>(
-  mode: AuthMode,
-  credentials: RegisterUserParamsDto,
-  operations: AuthSubmitOperations<TResult>,
-): Promise<TResult> => {
-  if (mode === 'register') {
-    await operations.register(credentials)
-  }
-
-  return operations.login(credentials)
 }
 
 /** 管理登入與註冊表單驗證、正式 API 及成功導流。 */
@@ -214,7 +157,7 @@ export function useLoginViewModel(): ILoginViewModel {
     enableGlobalError: false,
     onSuccess: (response) => {
       setAuth(response.data)
-      navigate(getReturnPath(location.state), { replace: true })
+      navigate(getPostAuthRoute(location.state), { replace: true })
     },
     onError: (error) => {
       if (mode === 'register') {

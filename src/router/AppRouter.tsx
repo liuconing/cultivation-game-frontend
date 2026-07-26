@@ -3,6 +3,7 @@ import { Button, Panel } from '@/components'
 import { useSession } from '@/session'
 import { GameRuntimeProvider } from '@/containers'
 import { CharacterCreateView } from '@/views/characterCreate'
+import { FoundationView } from '@/views/foundation'
 import { GameShellView } from '@/views/gameShell'
 import { HomeView } from '@/views/home'
 import { LoginView } from '@/views/login'
@@ -29,7 +30,7 @@ interface SessionErrorProps {
   message: string
   /** 重新執行 session 啟動查詢。 */
   onRetry: () => Promise<void>
-  /** 清除登入狀態並返回登入流程。 */
+  /** 清除登入狀態並返回公開首頁。 */
   onLogout: () => Promise<void>
 }
 
@@ -62,7 +63,7 @@ const SessionError = ({ message, onRetry, onLogout }: SessionErrorProps) => (
           }}
           variant='secondary'
         >
-          返回登入
+          返回首頁
         </Button>
       </div>
     </Panel>
@@ -104,7 +105,8 @@ export function AppRouter() {
 
   return (
     <Routes>
-      <Route element={<HomeView />} path='/foundation' />
+      <Route element={<HomeView />} path='/' />
+      <Route element={<FoundationView />} path='/foundation' />
       <Route element={<LoginView key='login' />} path='/login' />
       <Route element={<LoginView key='register' />} path='/register' />
       <Route element={<CharacterCreateView />} path='/character/create' />
