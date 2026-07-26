@@ -26,7 +26,7 @@ export interface ClaimCultivationData {
   lastCultivationClaimAt: IsoDateString
 }
 
-export type ClaimCultivationRes = ApiSuccess<ClaimCultivationData>
+export interface ClaimCultivationRes extends ApiSuccess<ClaimCultivationData> {}
 
 /** 領取目前累積的離線修為。 */
 export const claimCultivation = async (

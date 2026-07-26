@@ -2,7 +2,7 @@ import { getHealth } from '../repository'
 import type { GetHealthRes } from '../repository'
 
 /** 取得健康狀態 DTO。 */
-export type GetHealthDto = GetHealthRes
+export interface GetHealthDto extends GetHealthRes {}
 
 /**
  * 取得後端健康狀態。

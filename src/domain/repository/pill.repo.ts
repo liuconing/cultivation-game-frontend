@@ -95,9 +95,9 @@ export interface UsePillData {
   appliedEffects: ItemEffect[]
 }
 
-export type GetShopPillsRes = ApiSuccess<ShopPillsData>
-export type PurchasePillRes = ApiSuccess<PurchasePillData>
-export type UsePillRes = ApiSuccess<UsePillData>
+export interface GetShopPillsRes extends ApiSuccess<ShopPillsData> {}
+export interface PurchasePillRes extends ApiSuccess<PurchasePillData> {}
+export interface UsePillRes extends ApiSuccess<UsePillData> {}
 
 /** 取得目前角色可購買的丹藥。 */
 export const getShopPills = async (): Promise<GetShopPillsRes> => {

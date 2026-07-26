@@ -23,7 +23,7 @@ export interface LoginUserParams {
 }
 
 /** `POST /auth/register` request body。 */
-export type RegisterUserParams = LoginUserParams
+export interface RegisterUserParams extends LoginUserParams {}
 
 /** 登入成功資料。 */
 export interface LoginUserData {
@@ -45,39 +45,27 @@ export interface LogoutUserData {
   loggedOut: true
 }
 
-export type LoginUserRes = ApiSuccess<LoginUserData>
-export type RegisterUserRes = ApiSuccess<RegisterUserData>
-export type LogoutUserRes = ApiSuccess<LogoutUserData>
+export interface LoginUserRes extends ApiSuccess<LoginUserData> {}
+export interface RegisterUserRes extends ApiSuccess<RegisterUserData> {}
+export interface LogoutUserRes extends ApiSuccess<LogoutUserData> {}
 
 /** 註冊使用者。 */
-export const registerUser = async (
-  params: RegisterUserParams,
-): Promise<RegisterUserRes> => {
-  const { data } = await apiClient.post<RegisterUserRes>(
-    apiEndpoints.register.path(),
-    params,
-  )
+export const registerUser = async (params: RegisterUserParams): Promise<RegisterUserRes> => {
+  const { data } = await apiClient.post<RegisterUserRes>(apiEndpoints.register.path(), params)
 
   return data
 }
 
 /** 登入並取得 JWT token。 */
-export const loginUser = async (
-  params: LoginUserParams,
-): Promise<LoginUserRes> => {
-  const { data } = await apiClient.post<LoginUserRes>(
-    apiEndpoints.login.path(),
-    params,
-  )
+export const loginUser = async (params: LoginUserParams): Promise<LoginUserRes> => {
+  const { data } = await apiClient.post<LoginUserRes>(apiEndpoints.login.path(), params)
 
   return data
 }
 
 /** 撤銷目前 Bearer token 對應的後端 session。 */
 export const logoutUser = async (): Promise<LogoutUserRes> => {
-  const { data } = await apiClient.post<LogoutUserRes>(
-    apiEndpoints.logout.path(),
-  )
+  const { data } = await apiClient.post<LogoutUserRes>(apiEndpoints.logout.path())
 
   return data
 }

@@ -57,12 +57,13 @@ domain/
 
 ## Repository 命名
 
-| 項目     | 規則                             | 範例                        |
-| -------- | -------------------------------- | --------------------------- |
-| 檔案名稱 | lower camel case + `.repo.ts`    | `addWallet.repo.ts`         |
-| 回傳型別 | upper camel case + `Res` 結尾    | `GetEnvConfigRes`           |
-| 參數型別 | upper camel case + `Params` 結尾 | `SetFileServerConfigParams` |
-| function | lower camel case + 動詞開頭      | `getEnvConfig`              |
+| 項目         | 規則                                           | 範例                        |
+| ------------ | ---------------------------------------------- | --------------------------- |
+| 檔案名稱     | lower camel case + `.repo.ts`                  | `addWallet.repo.ts`         |
+| 成功 payload | upper camel case + `Data` 結尾                 | `LoginUserData`             |
+| 回傳型別     | upper camel case + `Res` 結尾（完整 envelope） | `LoginUserRes`              |
+| 參數型別     | upper camel case + `Params` 結尾               | `SetFileServerConfigParams` |
+| function     | lower camel case + 動詞開頭                    | `getEnvConfig`              |
 
 ## Repository 動詞前綴
 
@@ -87,18 +88,23 @@ domain/
 - TypeScript 參數需有明確型別。
 - HTTP 請求應在 `res.ok === false` 時拋出錯誤。
 - 錯誤處理方式以專案統一規範為準。
+- 業務 payload 使用 `interface XxxData`；不要把 payload 欄位直接攤在 `XxxRes` 上。
+- 完整成功回傳型別使用 `export interface XxxRes extends ApiSuccess<XxxData> {}`。
+- 禁止 `export type XxxRes = ApiSuccess<XxxData>`；`Res` 一律用 `interface` 繼承。
 
 ## Repository 範例
 
 ```ts
+import type { ApiSuccess } from './common'
+
 /** 取得錢包詳情所需傳入參數。 */
 export interface GetWalletDetailParams {
   /** 錢包 ID。 */
   walletId: string
 }
 
-/** 取得錢包詳情 API 回傳格式。 */
-export interface GetWalletDetailRes {
+/** 取得錢包詳情的成功 payload。 */
+export interface GetWalletDetailData {
   /** 錢包 ID。 */
   id: string
   /** 錢包名稱。 */
@@ -107,20 +113,19 @@ export interface GetWalletDetailRes {
   balance: number
 }
 
+/** 取得錢包詳情 API 成功 envelope。 */
+export interface GetWalletDetailRes extends ApiSuccess<GetWalletDetailData> {}
+
 /**
  * 取得指定錢包的詳情。
  *
  * @param params - 傳入參數，包含錢包 ID。
- * @returns 錢包詳情資料。
+ * @returns 錢包詳情成功 envelope。
  */
 export const getWalletDetail = async ({ walletId }: GetWalletDetailParams): Promise<GetWalletDetailRes> => {
-  const res = await fetch(`/api/wallet/${walletId}`)
+  const { data } = await apiClient.get<GetWalletDetailRes>(`/api/wallet/${walletId}`)
 
-  if (!res.ok) {
-    throw new Error(`getWalletDetail failed: ${res.status}`)
-  }
-
-  return res.json()
+  return data
 }
 ```
 
@@ -145,9 +150,10 @@ export const getWalletDetail = async ({ walletId }: GetWalletDetailParams): Prom
 - TypeScript 參數需有明確型別。
 - 如果 UI 沒有特殊需求，直接回傳 repository 取回的資料即可。
 - 不為了形式建立無意義轉換。
-- `Dto` 與 `Res` 欄位完全一致時，使用 `interface XxxDto extends XxxRes`
-- `ParamsDto` 與 `Params` 欄位完全一致時，使用 `interface XxxParamsDto extends XxxParams`
-- 有需要新增欄位或改變型別形狀時，使用 `interface XxxDto extends XxxRes` 或 `interface XxxParamsDto extends XxxParams`。
+- usecase 預設對外回傳完整 envelope 時：`interface XxxDto extends XxxRes`。
+- usecase 若只對外暴露 payload：`interface XxxDto extends XxxData`（需在 JSDoc 註明）。
+- `ParamsDto` 與 `Params` 欄位完全一致時，使用 `interface XxxParamsDto extends XxxParams`。
+- 有需要新增欄位或改變型別形狀時，使用 `interface XxxDto extends …` 擴充對應來源。
 - 保持 View 層依賴 usecase 介面，不直接依賴 repository 介面。
 
 ## Usecase 範例
@@ -156,7 +162,7 @@ export const getWalletDetail = async ({ walletId }: GetWalletDetailParams): Prom
 import { getWalletDetail } from '../repository'
 import type { GetWalletDetailParams, GetWalletDetailRes } from '../repository'
 
-/** 取得錢包詳情 DTO。 */
+/** 取得錢包詳情 DTO（完整成功 envelope）。 */
 export interface GetWalletDetailDto extends GetWalletDetailRes {}
 
 /** 取得錢包詳情 usecase 傳入參數。 */
@@ -183,7 +189,7 @@ export const getWalletDetailUsecase = async (params: GetWalletDetailParamsDto): 
 ## 命名一致性
 
 - 同一份資料在 repository、usecase、View 間需保持語意一致。
-- repository 回傳資料使用 `Res`。
+- repository 成功 payload 使用 `Data`；完整成功回傳使用 `Res`（`ApiSuccess<Data>`）。
 - usecase 對外資料使用 `Dto`。
 - repository 參數使用 `Params`。
 - usecase 對外參數使用 `ParamsDto`。
@@ -199,12 +205,14 @@ export const getWalletDetailUsecase = async (params: GetWalletDetailParamsDto): 
 4. 新增的 function 與對外型別是否都有 `export`。
 5. function 是否使用 `export const` 與 arrow function。
 6. function 是否都有 JSDoc。
-7. interface 欄位是否都有 JSDoc 或行內註解；純別名型別是否有用途註解。
+7. interface 欄位是否都有 JSDoc 或行內註解；空繼承的 `Res` / `Dto` 是否有用途註解。
 8. 函式參數是否使用物件參數與明確型別。
-9. 命名是否符合 `.repo.ts`、`.usecase.ts`、`Res`、`Params`、`Dto`、`ParamsDto`。
-10. usecase 是否正確 import 對應 repository function。
-11. Dto / ParamsDto 是否維持 View 與 repository 解耦。
-12. 是否避免加入 UI、router、store 或框架生命週期邏輯。
+9. 命名是否符合 `.repo.ts`、`.usecase.ts`、`Data`、`Res`、`Params`、`Dto`、`ParamsDto`。
+10. `XxxRes` 是否為 `interface XxxRes extends ApiSuccess<XxxData> {}`，而非 `type` 別名。
+11. usecase 是否正確 import 對應 repository function。
+12. Dto / ParamsDto 是否維持 View 與 repository 解耦。
+13. 是否避免加入 UI、router、store 或框架生命週期邏輯。
+14. `xxxx.view-controller.tsx` 內需要使用 domain 定義型別一律使用 usecase export 的定義
 
 ## Codex / AI Agent 操作規則
 

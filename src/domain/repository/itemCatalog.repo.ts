@@ -117,7 +117,7 @@ export interface GetItemsData {
   items: ItemCatalogResponse[]
 }
 
-export type GetItemsRes = ApiSuccess<GetItemsData>
+export interface GetItemsRes extends ApiSuccess<GetItemsData> {}
 
 /**
  * 取得道具圖鑑資料。

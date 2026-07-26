@@ -5,8 +5,8 @@ import type {
   MutationOptions,
 } from '../repository'
 
-export type EquipCultivationMethodDto = EquipCultivationMethodRes
-export type EquipCultivationMethodParamsDto = EquipCultivationMethodParams
+export interface EquipCultivationMethodDto extends EquipCultivationMethodRes {}
+export interface EquipCultivationMethodParamsDto extends EquipCultivationMethodParams {}
 
 /** 裝備指定功法。 */
 export const equipCultivationMethodUsecase = (

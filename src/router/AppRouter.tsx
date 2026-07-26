@@ -1,29 +1,21 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router'
 import { Button, Panel } from '@/components'
 import { useSession } from '@/session'
+import { GameRuntimeProvider } from '@/containers'
 import { CharacterCreateView } from '@/views/characterCreate'
-import {
-  GameRuntimeProvider,
-  GameShellView,
-} from '@/views/gameShell'
+import { GameShellView } from '@/views/gameShell'
 import { HomeView } from '@/views/home'
 import { LoginView } from '@/views/login'
 import { resolveRouteAccess } from './route-access'
 
 /** 顯示登入狀態與角色資料啟動期間的等待畫面。 */
 const SessionLoading = () => (
-  <main
-    aria-busy="true"
-    className="ink-wash grid min-h-dvh place-items-center bg-ink-950 px-4 text-neutral-200"
-  >
-    <Panel eyebrow="SESSION BOOTSTRAP" title="正在確認道籍">
-      <div
-        className="flex min-h-40 items-center justify-center gap-3 text-sm text-neutral-400"
-        role="status"
-      >
+  <main aria-busy='true' className='ink-wash grid min-h-dvh place-items-center bg-ink-950 px-4 text-neutral-200'>
+    <Panel eyebrow='SESSION BOOTSTRAP' title='正在確認道籍'>
+      <div className='flex min-h-40 items-center justify-center gap-3 text-sm text-neutral-400' role='status'>
         <span
-          aria-hidden="true"
-          className="size-6 animate-spin rounded-full border-2 border-jade-300/60 border-r-transparent"
+          aria-hidden='true'
+          className='size-6 animate-spin rounded-full border-2 border-jade-300/60 border-r-transparent'
         />
         正在載入登入與角色狀態……
       </div>
@@ -46,21 +38,17 @@ interface SessionErrorProps {
  *
  * @param props - 錯誤訊息、重試及登出操作。
  */
-const SessionError = ({
-  message,
-  onRetry,
-  onLogout,
-}: SessionErrorProps) => (
-  <main className="ink-wash grid min-h-dvh place-items-center bg-ink-950 px-4 text-neutral-200">
-    <Panel eyebrow="SESSION ERROR" title="暫時無法載入">
+const SessionError = ({ message, onRetry, onLogout }: SessionErrorProps) => (
+  <main className='ink-wash grid min-h-dvh place-items-center bg-ink-950 px-4 text-neutral-200'>
+    <Panel eyebrow='SESSION ERROR' title='暫時無法載入'>
       <div
-        aria-live="assertive"
-        className="rounded-md border border-cinnabar-400/30 bg-cinnabar-400/[0.08] p-4 text-sm leading-6 text-cinnabar-100"
-        role="alert"
+        aria-live='assertive'
+        className='rounded-md border border-cinnabar-400/30 bg-cinnabar-400/[0.08] p-4 text-sm leading-6 text-cinnabar-100'
+        role='alert'
       >
         {message}
       </div>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className='mt-4 flex flex-col gap-2 sm:flex-row'>
         <Button
           onClick={() => {
             void onRetry()
@@ -72,7 +60,7 @@ const SessionError = ({
           onClick={() => {
             void onLogout()
           }}
-          variant="secondary"
+          variant='secondary'
         >
           返回登入
         </Button>
@@ -84,12 +72,7 @@ const SessionError = ({
 /** 依 session 狀態提供登入、角色建立與遊戲路由守衛。 */
 export function AppRouter() {
   const location = useLocation()
-  const {
-    status,
-    errorMessage,
-    reloadSession,
-    logout,
-  } = useSession()
+  const { status, errorMessage, reloadSession, logout } = useSession()
   const routeAccess = resolveRouteAccess({
     pathname: location.pathname,
     sessionStatus: status,
@@ -102,9 +85,7 @@ export function AppRouter() {
   if (routeAccess.kind === 'error') {
     return (
       <SessionError
-        message={
-          errorMessage ?? '登入狀態載入失敗，請稍後再試。'
-        }
+        message={errorMessage ?? '登入狀態載入失敗，請稍後再試。'}
         onLogout={logout}
         onRetry={reloadSession}
       />
@@ -115,11 +96,7 @@ export function AppRouter() {
     return (
       <Navigate
         replace
-        state={
-          routeAccess.preserveFrom
-            ? { from: `${location.pathname}${location.search}` }
-            : undefined
-        }
+        state={routeAccess.preserveFrom ? { from: `${location.pathname}${location.search}` } : undefined}
         to={routeAccess.to}
       />
     )
@@ -127,23 +104,17 @@ export function AppRouter() {
 
   return (
     <Routes>
-      <Route element={<HomeView />} path="/foundation" />
-      <Route element={<LoginView key="login" />} path="/login" />
-      <Route
-        element={<LoginView key="register" />}
-        path="/register"
-      />
-      <Route
-        element={<CharacterCreateView />}
-        path="/character/create"
-      />
+      <Route element={<HomeView />} path='/foundation' />
+      <Route element={<LoginView key='login' />} path='/login' />
+      <Route element={<LoginView key='register' />} path='/register' />
+      <Route element={<CharacterCreateView />} path='/character/create' />
       <Route
         element={
           <GameRuntimeProvider>
             <GameShellView />
           </GameRuntimeProvider>
         }
-        path="/game/*"
+        path='/game/*'
       />
     </Routes>
   )

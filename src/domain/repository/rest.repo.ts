@@ -20,7 +20,7 @@ export interface CompleteRestData {
   restingSince: null
 }
 
-export type CompleteRestRes = ApiSuccess<CompleteRestData>
+export interface CompleteRestRes extends ApiSuccess<CompleteRestData> {}
 
 /** 使用靈石立即完成休養。 */
 export const completeRest = async (

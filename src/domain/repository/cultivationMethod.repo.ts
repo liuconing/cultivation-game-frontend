@@ -25,8 +25,7 @@ export interface EquipCultivationMethodData {
   derivedStats: CharacterStats
 }
 
-export type EquipCultivationMethodRes =
-  ApiSuccess<EquipCultivationMethodData>
+export interface EquipCultivationMethodRes extends ApiSuccess<EquipCultivationMethodData> {}
 
 /** 裝備角色持有的功法。 */
 export const equipCultivationMethod = async (

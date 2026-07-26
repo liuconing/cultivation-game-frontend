@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { loginUserUsecase, registerUserUsecase } from '@/domain'
+import { loginUserUsecase, registerUserUsecase, type RegisterUserParamsDto } from '@/domain'
 import {
   createInitialAuthFormValues,
   validateAuthForm,
@@ -12,7 +12,6 @@ import {
 import { useMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import { useAuthStore } from '@/stores'
-import { submitAuthFlow } from './auth-submit-flow'
 
 /** 登入與註冊 ViewController 需要的狀態與操作。 */
 export interface ILoginViewModel {
@@ -40,6 +39,14 @@ export interface ILoginViewModel {
   handleTogglePassword: () => void
   /** 驗證並送出登入或註冊表單。 */
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void
+}
+
+/** 認證送出流程所需的 API 操作。 */
+interface AuthSubmitOperations<TResult> {
+  /** 建立新帳號；完成後才可進行自動登入。 */
+  register: (credentials: RegisterUserParamsDto) => Promise<unknown>
+  /** 以相同帳密登入並回傳 session 結果。 */
+  login: (credentials: RegisterUserParamsDto) => Promise<TResult>
 }
 
 /** 登入導向所附帶的來源路徑狀態。 */
@@ -71,6 +78,26 @@ const getReturnPath = (state: unknown): string => {
   }
 
   return from
+}
+
+/**
+ * 依登入或註冊模式循序執行認證 API。
+ *
+ * @param mode - 目前表單模式。
+ * @param credentials - 已通過前端驗證的 Email 與密碼。
+ * @param operations - 可替換測試的註冊與登入操作。
+ * @returns 登入 API 的 session 結果。
+ */
+const submitAuthFlow = async <TResult>(
+  mode: AuthMode,
+  credentials: RegisterUserParamsDto,
+  operations: AuthSubmitOperations<TResult>,
+): Promise<TResult> => {
+  if (mode === 'register') {
+    await operations.register(credentials)
+  }
+
+  return operations.login(credentials)
 }
 
 /** 管理登入與註冊表單驗證、正式 API 及成功導流。 */
@@ -201,8 +228,7 @@ export function useLoginViewModel(): ILoginViewModel {
       handleAuthError(error)
     },
   })
-  const isSubmitting =
-    registerMutation.isPending || loginMutation.isPending
+  const isSubmitting = registerMutation.isPending || loginMutation.isPending
 
   /** 呼叫正式認證 API，註冊成功後立即以相同帳密登入。 */
   const submitAuth = async (): Promise<void> => {

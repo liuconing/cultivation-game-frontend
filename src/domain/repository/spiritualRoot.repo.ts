@@ -47,7 +47,7 @@ export interface SpiritualRootUpgradeData {
   }
 }
 
-export type UpgradeSpiritualRootRes = ApiSuccess<SpiritualRootUpgradeData>
+export interface UpgradeSpiritualRootRes extends ApiSuccess<SpiritualRootUpgradeData> {}
 
 /** 提升目前角色的靈根品質。 */
 export const upgradeSpiritualRoot = async (

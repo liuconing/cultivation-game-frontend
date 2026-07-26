@@ -166,7 +166,7 @@ export interface GetMonstersData {
   monsters: MonsterCatalogResponse[]
 }
 
-export type GetMonstersRes = ApiSuccess<GetMonstersData>
+export interface GetMonstersRes extends ApiSuccess<GetMonstersData> {}
 
 /**
  * 取得怪物圖鑑資料。

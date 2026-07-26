@@ -108,9 +108,8 @@ export interface BreakthroughData {
   }
 }
 
-export type BreakthroughRes = ApiSuccess<BreakthroughData>
-export type BreakthroughPreviewRes =
-  ApiSuccess<BreakthroughPreviewData>
+export interface BreakthroughRes extends ApiSuccess<BreakthroughData> {}
+export interface BreakthroughPreviewRes extends ApiSuccess<BreakthroughPreviewData> {}
 
 /** 讀取指定丹藥選擇下的突破預覽。 */
 export const getBreakthroughPreview = async (

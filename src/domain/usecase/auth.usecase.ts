@@ -12,19 +12,19 @@ import type {
 } from '../repository'
 
 /** 登入回傳 DTO。 */
-export type LoginUserDto = LoginUserRes
+export interface LoginUserDto extends LoginUserRes {}
 
 /** 登入 usecase 傳入參數。 */
-export type LoginUserParamsDto = LoginUserParams
+export interface LoginUserParamsDto extends LoginUserParams {}
 
 /** 註冊回傳 DTO。 */
-export type RegisterUserDto = RegisterUserRes
+export interface RegisterUserDto extends RegisterUserRes {}
 
 /** 註冊 usecase 傳入參數。 */
-export type RegisterUserParamsDto = RegisterUserParams
+export interface RegisterUserParamsDto extends RegisterUserParams {}
 
 /** 登出回傳 DTO。 */
-export type LogoutUserDto = LogoutUserRes
+export interface LogoutUserDto extends LogoutUserRes {}
 
 /**
  * 登入使用者並取得 JWT token。

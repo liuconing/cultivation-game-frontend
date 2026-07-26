@@ -8,11 +8,11 @@ import type {
   UsePillRes,
 } from '../repository'
 
-export type GetShopPillsDto = GetShopPillsRes
-export type PurchasePillDto = PurchasePillRes
-export type PurchasePillParamsDto = PurchasePillParams
-export type UsePillDto = UsePillRes
-export type UsePillParamsDto = UsePillParams
+export interface GetShopPillsDto extends GetShopPillsRes {}
+export interface PurchasePillDto extends PurchasePillRes {}
+export interface PurchasePillParamsDto extends PurchasePillParams {}
+export interface UsePillDto extends UsePillRes {}
+export interface UsePillParamsDto extends UsePillParams {}
 
 /** 取得丹藥商店商品。 */
 export const getShopPillsUsecase = (): Promise<GetShopPillsDto> =>

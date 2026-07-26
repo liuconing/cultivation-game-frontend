@@ -2,11 +2,8 @@ import { useState } from 'react'
 import { useGlobalErrorHandler } from '@/error'
 import { useMutation } from '@/hook'
 import { uuid } from '@/lib/uuid'
-import {
-  createOperationIntentLifecycle,
-  type OperationIntentLifecycle,
-} from './game-mutation'
-import { useGameRuntime } from './use-game-runtime'
+import { createOperationIntentLifecycle, type OperationIntentLifecycle } from '@/utils'
+import { useGameRuntime } from '@/containers'
 
 /** 後端資源異動函式收到的冪等資訊。 */
 export interface GameMutationContext {
@@ -19,19 +16,13 @@ export interface UseGameMutationOptions<TIntent, TData> {
   /** 穩定且唯一的操作名稱，用來隔離不同後端 mutation。 */
   operation: string
   /** 實際呼叫 repository/usecase 的函式，必須傳遞冪等鍵。 */
-  request: (
-    intent: TIntent,
-    context: GameMutationContext,
-  ) => Promise<TData>
+  request: (intent: TIntent, context: GameMutationContext) => Promise<TData>
   /** GameState 同步完成後執行的頁面專屬成功處理。 */
   onSuccess?: (data: TData, intent: TIntent) => void | Promise<void>
   /** API 異動失敗時執行的頁面專屬錯誤處理。 */
   onError?: (error: unknown, intent: TIntent) => void
   /** GameState 之外需要一併刷新的額外查詢。 */
-  synchronize?: (
-    data: TData,
-    intent: TIntent,
-  ) => void | Promise<void>
+  synchronize?: (data: TData, intent: TIntent) => void | Promise<void>
   /** 未提供局部錯誤處理時是否顯示全域通知。 */
   enableGlobalError?: boolean
 }
@@ -74,19 +65,11 @@ export function useGameMutation<TIntent, TData>(
 ): GameMutation<TIntent, TData> {
   const { reloadGameState } = useGameRuntime()
   const { handleGlobalError } = useGlobalErrorHandler()
-  const [lifecycle] = useState<OperationIntentLifecycle<TIntent>>(
-    () =>
-      createOperationIntentLifecycle<TIntent>(
-        options.operation,
-        uuid,
-      ),
+  const [lifecycle] = useState<OperationIntentLifecycle<TIntent>>(() =>
+    createOperationIntentLifecycle<TIntent>(options.operation, uuid),
   )
   const mutation = useMutation(
-    ({
-      intent,
-      idempotencyKey,
-    }: GameMutationVariables<TIntent>) =>
-      options.request(intent, { idempotencyKey }),
+    ({ intent, idempotencyKey }: GameMutationVariables<TIntent>) => options.request(intent, { idempotencyKey }),
     {
       enableGlobalError: options.enableGlobalError,
       onError: options.onError
@@ -100,10 +83,7 @@ export function useGameMutation<TIntent, TData>(
         lifecycle.complete(variables.intent)
 
         try {
-          await Promise.all([
-            reloadGameState(),
-            options.synchronize?.(data, variables.intent),
-          ])
+          await Promise.all([reloadGameState(), options.synchronize?.(data, variables.intent)])
           await options.onSuccess?.(data, variables.intent)
         } catch (error) {
           handleGlobalError(error)

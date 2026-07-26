@@ -31,7 +31,7 @@ export interface EquipSkillsData {
   equippedPassiveSkillId: PassiveSkillId
 }
 
-export type EquipSkillsRes = ApiSuccess<EquipSkillsData>
+export interface EquipSkillsRes extends ApiSuccess<EquipSkillsData> {}
 
 /** 配置角色的主動與被動技能。 */
 export const equipSkills = async (

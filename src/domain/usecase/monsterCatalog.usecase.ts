@@ -2,10 +2,10 @@ import { getMonsters } from '../repository'
 import type { GetMonstersParams, GetMonstersRes } from '../repository'
 
 /** 取得怪物圖鑑回傳 DTO。 */
-export type GetMonstersDto = GetMonstersRes
+export interface GetMonstersDto extends GetMonstersRes {}
 
 /** 取得怪物圖鑑 usecase 傳入參數。 */
-export type GetMonstersParamsDto = GetMonstersParams
+export interface GetMonstersParamsDto extends GetMonstersParams {}
 
 /**
  * 取得怪物圖鑑資料。

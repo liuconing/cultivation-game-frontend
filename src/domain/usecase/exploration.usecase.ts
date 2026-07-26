@@ -5,8 +5,8 @@ import type {
   MutationOptions,
 } from '../repository'
 
-export type ExploreDto = ExploreRes
-export type ExploreParamsDto = ExploreParams
+export interface ExploreDto extends ExploreRes {}
+export interface ExploreParamsDto extends ExploreParams {}
 
 /** 進行一次地圖探索。 */
 export const exploreUsecase = (

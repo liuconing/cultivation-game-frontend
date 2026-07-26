@@ -5,8 +5,8 @@ import type {
   MutationOptions,
 } from '../repository'
 
-export type EquipSkillsDto = EquipSkillsRes
-export type EquipSkillsParamsDto = EquipSkillsParams
+export interface EquipSkillsDto extends EquipSkillsRes {}
+export interface EquipSkillsParamsDto extends EquipSkillsParams {}
 
 /** 配置主動與被動技能。 */
 export const equipSkillsUsecase = (

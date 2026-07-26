@@ -54,14 +54,10 @@ export type SpiritualRootQuality = (typeof spiritualRootQualities)[number]
 export type Realm = (typeof realms)[number]
 export type MinorRealm = (typeof minorRealms)[number]
 export type CharacterEquipmentSlot = (typeof characterEquipmentSlots)[number]
-export type CharacterEquipment = Record<
-  CharacterEquipmentSlot,
-  ItemCatalogResponse | null
->
-export type CharacterEquippedItemIds = Record<
-  CharacterEquipmentSlot,
-  string | null
->
+export interface CharacterEquipment
+  extends Record<CharacterEquipmentSlot, ItemCatalogResponse | null> {}
+export interface CharacterEquippedItemIds
+  extends Record<CharacterEquipmentSlot, string | null> {}
 
 /** 角色共用屬性。 */
 export interface CharacterStats {
@@ -169,8 +165,8 @@ export interface CreateCharacterData {
   character: CharacterResponse
 }
 
-export type GetMyCharacterRes = ApiSuccess<GetMyCharacterData>
-export type CreateCharacterRes = ApiSuccess<CreateCharacterData>
+export interface GetMyCharacterRes extends ApiSuccess<GetMyCharacterData> {}
+export interface CreateCharacterRes extends ApiSuccess<CreateCharacterData> {}
 
 /** 取得目前登入使用者的角色。 */
 export const getMyCharacter = async (): Promise<GetMyCharacterRes> => {

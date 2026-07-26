@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import type { GameViewBattleLogEntry } from '../game-view-state'
-import {
-  advanceExplorationPlayback,
-  createExplorationPlaybackState,
-  explorationPlaybackIntervalMs,
-  type ExplorationPlaybackPhase,
-  type ExplorationPlaybackState,
-} from './exploration-playback'
+import type { GameViewBattleLogEntry } from '@/utils'
 
 /** 探索戰鬥播放 hook 的輸入。 */
 export interface UseExplorationPlaybackInput {
@@ -40,6 +33,84 @@ interface InternalPlaybackState {
   state: ExplorationPlaybackState
 }
 
+/** 探索戰鬥每筆敘述出現的固定間隔。 */
+export const explorationPlaybackIntervalMs = 450
+
+/** 探索戰報從等待到結果揭示的播放階段。 */
+export type ExplorationPlaybackPhase = 'idle' | 'playing' | 'settling' | 'revealed'
+
+/** 探索戰報播放狀態機的純資料。 */
+export interface ExplorationPlaybackState {
+  /** 目前播放階段，只有 revealed 可以顯示勝敗與獎勵。 */
+  phase: ExplorationPlaybackPhase
+  /** 目前已顯示的戰報筆數。 */
+  visibleCount: number
+}
+
+/**
+ * 計算播放開始時應顯示的戰鬥行動數。
+ *
+ * @param totalEntries - 後端戰鬥紀錄總筆數。
+ * @returns 有紀錄時先顯示第一筆，空紀錄則為零。
+ */
+const getInitialPlaybackCount = (totalEntries: number): number => Math.min(1, Math.max(0, totalEntries))
+
+/**
+ * 建立一場戰鬥剛開啟時的播放狀態。
+ *
+ * @param totalEntries - 後端戰鬥紀錄總筆數。
+ * @returns 空戰報直接揭示；其餘先顯示第一筆並開始或等待結算。
+ */
+const createExplorationPlaybackState = (totalEntries: number): ExplorationPlaybackState => {
+  const visibleCount = getInitialPlaybackCount(totalEntries)
+
+  if (totalEntries <= 0) {
+    return { phase: 'revealed', visibleCount: 0 }
+  }
+
+  return {
+    phase: visibleCount >= totalEntries ? 'settling' : 'playing',
+    visibleCount,
+  }
+}
+
+/**
+ * 計算下一個播放刻度的可見筆數。
+ *
+ * @param currentCount - 目前已顯示筆數。
+ * @param totalEntries - 後端戰鬥紀錄總筆數。
+ * @returns 每次最多增加一筆且不超過總數。
+ */
+const getNextPlaybackCount = (currentCount: number, totalEntries: number): number =>
+  Math.min(Math.max(0, currentCount) + 1, Math.max(0, totalEntries))
+
+/**
+ * 將播放狀態推進一個 450ms 刻度。
+ *
+ * @param current - 目前播放狀態。
+ * @param totalEntries - 後端戰鬥紀錄總筆數。
+ * @returns 下一個播放狀態；最後一筆後保留一個 settling 刻度。
+ */
+const advanceExplorationPlayback = (
+  current: ExplorationPlaybackState,
+  totalEntries: number,
+): ExplorationPlaybackState => {
+  if (current.phase === 'idle' || current.phase === 'revealed') {
+    return current
+  }
+
+  if (current.phase === 'settling') {
+    return { ...current, phase: 'revealed' }
+  }
+
+  const visibleCount = getNextPlaybackCount(current.visibleCount, totalEntries)
+
+  return {
+    visibleCount,
+    phase: visibleCount >= totalEntries ? 'settling' : 'playing',
+  }
+}
+
 /**
  * 管理探索戰鬥 450ms 逐筆播放、自動捲動與關閉清理。
  *
@@ -54,20 +125,18 @@ export function useExplorationPlayback({
   battleId,
   battleLog,
 }: UseExplorationPlaybackInput): ExplorationPlayback {
-  const [playback, setPlayback] =
-    useState<InternalPlaybackState>({
-      /** 初始關閉來源不會啟動計時器。 */
-      source: 'closed:none:0',
-      /** 關閉時不顯示戰報或結果。 */
-      state: { phase: 'idle', visibleCount: 0 },
-    })
+  const [playback, setPlayback] = useState<InternalPlaybackState>({
+    /** 初始關閉來源不會啟動計時器。 */
+    source: 'closed:none:0',
+    /** 關閉時不顯示戰報或結果。 */
+    state: { phase: 'idle', visibleCount: 0 },
+  })
   const scrollContainerRef = useRef<HTMLOListElement>(null)
   const source = `${isOpen ? 'open' : 'closed'}:${battleId ?? 'none'}:${battleLog.length}`
   const initialState = isOpen
     ? createExplorationPlaybackState(battleLog.length)
     : { phase: 'idle' as const, visibleCount: 0 }
-  const activeState =
-    playback.source === source ? playback.state : initialState
+  const activeState = playback.source === source ? playback.state : initialState
 
   if (playback.source !== source) {
     // React 會在提交畫面前以新來源重跑本次 render，避免切換戰鬥時
@@ -79,11 +148,7 @@ export function useExplorationPlayback({
   }
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      activeState.phase === 'idle' ||
-      activeState.phase === 'revealed'
-    ) {
+    if (!isOpen || activeState.phase === 'idle' || activeState.phase === 'revealed') {
       return
     }
 
@@ -94,10 +159,7 @@ export function useExplorationPlayback({
         current.source === source
           ? {
               ...current,
-              state: advanceExplorationPlayback(
-                current.state,
-                battleLog.length,
-              ),
+              state: advanceExplorationPlayback(current.state, battleLog.length),
             }
           : current,
       )
@@ -106,13 +168,7 @@ export function useExplorationPlayback({
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [
-    activeState.phase,
-    activeState.visibleCount,
-    battleLog.length,
-    isOpen,
-    source,
-  ])
+  }, [activeState.phase, activeState.visibleCount, battleLog.length, isOpen, source])
 
   useEffect(() => {
     if (!isOpen || !scrollContainerRef.current) {
@@ -126,10 +182,7 @@ export function useExplorationPlayback({
   }, [isOpen, activeState.visibleCount])
 
   return {
-    visibleBattleLog: battleLog.slice(
-      0,
-      activeState.visibleCount,
-    ),
+    visibleBattleLog: battleLog.slice(0, activeState.visibleCount),
     visibleCount: activeState.visibleCount,
     phase: activeState.phase,
     isOutcomeRevealed: activeState.phase === 'revealed',

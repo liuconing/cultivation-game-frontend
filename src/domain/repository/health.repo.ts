@@ -10,7 +10,7 @@ export interface HealthData {
   mongo: number
 }
 
-export type GetHealthRes = ApiSuccess<HealthData>
+export interface GetHealthRes extends ApiSuccess<HealthData> {}
 
 /** 取得後端與 MongoDB 健康狀態。 */
 export const getHealth = async (): Promise<GetHealthRes> => {

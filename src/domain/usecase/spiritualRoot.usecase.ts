@@ -4,7 +4,7 @@ import type {
   UpgradeSpiritualRootRes,
 } from '../repository'
 
-export type UpgradeSpiritualRootDto = UpgradeSpiritualRootRes
+export interface UpgradeSpiritualRootDto extends UpgradeSpiritualRootRes {}
 
 /** 提升靈根品質。 */
 export const upgradeSpiritualRootUsecase = (

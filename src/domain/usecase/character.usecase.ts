@@ -1,18 +1,12 @@
 import { createCharacter, getMyCharacter } from '../repository'
-import type {
-  CreateCharacterParams,
-  CreateCharacterRes,
-  GetMyCharacterRes,
-  MutationOptions,
-} from '../repository'
+import type { CreateCharacterParams, CreateCharacterRes, GetMyCharacterRes, MutationOptions } from '../repository'
 
-export type GetMyCharacterDto = GetMyCharacterRes
-export type CreateCharacterDto = CreateCharacterRes
-export type CreateCharacterParamsDto = CreateCharacterParams
+export interface GetMyCharacterDto extends GetMyCharacterRes {}
+export interface CreateCharacterDto extends CreateCharacterRes {}
+export interface CreateCharacterParamsDto extends CreateCharacterParams {}
 
 /** 取得目前使用者的角色。 */
-export const getMyCharacterUsecase = (): Promise<GetMyCharacterDto> =>
-  getMyCharacter()
+export const getMyCharacterUsecase = (): Promise<GetMyCharacterDto> => getMyCharacter()
 
 /** 建立目前使用者的角色。 */
 export const createCharacterUsecase = (

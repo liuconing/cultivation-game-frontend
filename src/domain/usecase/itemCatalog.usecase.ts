@@ -2,10 +2,10 @@ import { getItems } from '../repository'
 import type { GetItemsParams, GetItemsRes } from '../repository'
 
 /** 取得道具圖鑑回傳 DTO。 */
-export type GetItemsDto = GetItemsRes
+export interface GetItemsDto extends GetItemsRes {}
 
 /** 取得道具圖鑑 usecase 傳入參數。 */
-export type GetItemsParamsDto = GetItemsParams
+export interface GetItemsParamsDto extends GetItemsParams {}
 
 /**
  * 取得道具圖鑑資料。

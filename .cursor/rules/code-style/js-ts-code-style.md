@@ -146,6 +146,14 @@ const activeUserList = users.filter((user) => user.status === 'active')
 const userLists: UserListGroup[] = []
 ```
 
+## Hook 命名與放置
+
+- Hook 匯出名稱一律 `use` + 描述用途，整體為 lowerCamelCase（如 `useGameRuntime`、`useExplorationPlayback`）。
+- 檔名與匯出名稱一致（如 `useGameRuntime.ts`）。
+- **單一面／元件專用**：放在該畫面或元件目錄下的 `hook/`（如 `views/gameShell/explore/hook/`）。
+- **兩個以上消費端共用**：放在 `src/hook/`，並由 `src/hook/index.ts` re-export。
+- 不要把僅單一畫面使用的 hook 提前抽到 `src/hook/`；也不要把跨頁共用 hook 塞進某個畫面的 `hook/`。
+
 ## Naming Consistency
 
 - 同一個資料概念在同一個模組中只能使用一種命名。

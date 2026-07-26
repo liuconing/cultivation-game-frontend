@@ -62,6 +62,15 @@ const activeUserList = useMemo(() => {
 - 不要套用 Vue 的 `Ref` 後綴規則。
 - DOM ref 可使用描述用途的名稱，例如 `formElementRef` 或沿用專案既有慣例。
 
+## React View 命名規範
+
+- 畫面頁放在 `src/views/**`，一個畫面一個資料夾（camelCase，如 `cave/`、`cultivation/`）。
+- 必要檔案：`{name}.view-controller.tsx`（純 UI）、`{name}.view-model.ts`（邏輯）、`index.ts`（barrel）。
+- 具名匯出：`xxxViewController`、`useXxxViewModel`、`IXxxViewModel`；`index` 以 `XxxView` 對外（如 `CaveView`）。
+- `default` 匯出使用 `bind(viewController, useViewModel)` 串接兩層。
+- ViewController 只吃 ViewModel props；不要在 controller 寫 hooks／API／狀態。
+- 結構細節、子元件與資料夾規則見 `.cursor/rules/code-style/react-view-structure.md`。
+
 ## AI Agent 執行規則
 
 - 修改 `*.jsx`、`*.tsx` 前需同時套用本規則與 `.cursor/rules/code-style/js-ts-code-style.md`。

@@ -124,7 +124,7 @@ export interface ExplorationData {
   characterAfter: ExplorationCharacterAfter
 }
 
-export type ExploreRes = ApiSuccess<ExplorationData>
+export interface ExploreRes extends ApiSuccess<ExplorationData> {}
 
 /** 進行一次指定地圖的探索。 */
 export const explore = async (

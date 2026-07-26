@@ -1,21 +1,11 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { useLocation } from 'react-router'
 import { getApiClientError } from '@/lib/axios'
 import { useSession } from '@/session'
-import type { GameViewState } from './game-view-state'
-import { useGameRuntime } from './use-game-runtime'
+import type { GameViewState } from '@/utils'
+import { useGameRuntime } from '@/containers'
 
-export type GameRoute =
-  | '/game/cultivation'
-  | '/game/explore'
-  | '/game/loadout'
-  | '/game/cave'
+export type GameRoute = '/game/cultivation' | '/game/explore' | '/game/loadout' | '/game/cave'
 
 export interface GameNavigationItem {
   path: GameRoute
@@ -68,9 +58,7 @@ const isGameRoute = (path: string): path is GameRoute => {
 }
 
 /** 依正式 GameState 建立頂部全域狀態提示。 */
-const getGlobalIndicators = (
-  gameState: GameViewState,
-): GlobalIndicator[] => {
+const getGlobalIndicators = (gameState: GameViewState): GlobalIndicator[] => {
   const { character } = gameState
   const indicators: GlobalIndicator[] = []
 
@@ -140,14 +128,8 @@ export interface IGameShellViewModel {
 export function useGameShellViewModel(): IGameShellViewModel {
   const location = useLocation()
   const { user, logout, isLoggingOut } = useSession()
-  const {
-    gameState,
-    catalogError,
-    reloadCatalog,
-    reloadGameState,
-  } = useGameRuntime()
-  const [isCharacterDrawerOpen, setIsCharacterDrawerOpen] =
-    useState(false)
+  const { gameState, catalogError, reloadCatalog, reloadGameState } = useGameRuntime()
+  const [isCharacterDrawerOpen, setIsCharacterDrawerOpen] = useState(false)
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [shellNotice, setShellNotice] = useState<string | null>(null)
   const [shellError, setShellError] = useState<string | null>(null)
@@ -155,22 +137,15 @@ export function useGameShellViewModel(): IGameShellViewModel {
   const accountMenuRef = useRef<HTMLDivElement>(null)
   const accountFirstItemRef = useRef<HTMLButtonElement>(null)
 
-  const activePath = isGameRoute(location.pathname)
-    ? location.pathname
-    : '/game/cultivation'
-  const activeItem =
-    gameNavigationItems.find((item) => item.path === activePath) ??
-    gameNavigationItems[0]
+  const activePath = isGameRoute(location.pathname) ? location.pathname : '/game/cultivation'
+  const activeItem = gameNavigationItems.find((item) => item.path === activePath) ?? gameNavigationItems[0]
 
-  const handleCloseAccountMenu = useCallback(
-    (restoreFocus = true) => {
-      setIsAccountMenuOpen(false)
-      if (restoreFocus) {
-        requestAnimationFrame(() => accountButtonRef.current?.focus())
-      }
-    },
-    [],
-  )
+  const handleCloseAccountMenu = useCallback((restoreFocus = true) => {
+    setIsAccountMenuOpen(false)
+    if (restoreFocus) {
+      requestAnimationFrame(() => accountButtonRef.current?.focus())
+    }
+  }, [])
 
   useEffect(() => {
     if (!isAccountMenuOpen) {
@@ -255,9 +230,7 @@ export function useGameShellViewModel(): IGameShellViewModel {
     setShellNotice('正在安全登出…')
     void logout().catch((error: unknown) => {
       setShellNotice(null)
-      setShellError(
-        `${getApiClientError(error).message} 登出尚未完成，請重試。`,
-      )
+      setShellError(`${getApiClientError(error).message} 登出尚未完成，請重試。`)
     })
   }
 

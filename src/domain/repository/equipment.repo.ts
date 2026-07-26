@@ -72,9 +72,9 @@ export interface SellEquipmentData {
   spiritStones: number
 }
 
-export type CompareEquipmentRes = ApiSuccess<EquipmentComparisonData>
-export type EquipEquipmentRes = ApiSuccess<EquipEquipmentData>
-export type SellEquipmentRes = ApiSuccess<SellEquipmentData>
+export interface CompareEquipmentRes extends ApiSuccess<EquipmentComparisonData> {}
+export interface EquipEquipmentRes extends ApiSuccess<EquipEquipmentData> {}
+export interface SellEquipmentRes extends ApiSuccess<SellEquipmentData> {}
 
 /** 比較背包裝備與目前穿戴裝備。 */
 export const compareEquipment = async (

@@ -11,10 +11,10 @@ import type {
   SellEquipmentRes,
 } from '../repository'
 
-export type CompareEquipmentDto = CompareEquipmentRes
-export type EquipEquipmentDto = EquipEquipmentRes
-export type SellEquipmentDto = SellEquipmentRes
-export type EquipmentInstanceParamsDto = EquipmentInstanceParams
+export interface CompareEquipmentDto extends CompareEquipmentRes {}
+export interface EquipEquipmentDto extends EquipEquipmentRes {}
+export interface SellEquipmentDto extends SellEquipmentRes {}
+export interface EquipmentInstanceParamsDto extends EquipmentInstanceParams {}
 
 /** 取得裝備比較結果。 */
 export const compareEquipmentUsecase = (

@@ -176,7 +176,7 @@ export interface GameStateData {
   maps: GameMap[]
 }
 
-export type GetGameStateRes = ApiSuccess<GameStateData>
+export interface GetGameStateRes extends ApiSuccess<GameStateData> {}
 
 /** 讀取目前登入玩家的完整遊戲狀態。 */
 export const getGameState = async (): Promise<GetGameStateRes> => {
