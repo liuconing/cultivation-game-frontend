@@ -33,12 +33,12 @@ src/
 
 ## 1. 資料夾命名
 
-| 類型         | 命名規則                                       | 範例                                |
-| ------------ | ---------------------------------------------- | ----------------------------------- |
-| 畫面（View） | camelCase（小寫開頭），一個畫面一個資料夾      | `cave/`、`gameShell/`、`home/`      |
-| 子元件集合   | 固定使用 `components/`                         | `explore/components/`               |
-| 單一子元件   | PascalCase，一個元件一個資料夾（較複雜時）     | `components/ExploreHeader/`         |
-| view 專用 hook | 固定使用 `hook/`                             | `explore/hook/`                     |
+| 類型           | 命名規則                                   | 範例                           |
+| -------------- | ------------------------------------------ | ------------------------------ |
+| 畫面（View）   | camelCase（小寫開頭），一個畫面一個資料夾  | `cave/`、`gameShell/`、`home/` |
+| 子元件集合     | 固定使用 `components/`                     | `explore/components/`          |
+| 單一子元件     | PascalCase，一個元件一個資料夾（較複雜時） | `components/ExploreHeader/`    |
+| view 專用 hook | 固定使用 `hook/`                           | `explore/hook/`                |
 
 - 簡單子元件可直接平放於 `components/` 下，較複雜者再各自開資料夾並附 `index.ts`。
 
@@ -46,16 +46,16 @@ src/
 
 - View 主檔前綴一律等於資料夾名（camelCase），如 `gameShell/` 內為 `gameShell.view-controller.tsx`。
 
-| 檔案                                 | 用途                                             | 副檔名規則                        |
-| ------------------------------------ | ------------------------------------------------ | --------------------------------- |
-| `{資料夾名}.view-controller.tsx`     | View 層，只負責 UI 呈現，從 ViewModel 接收 props | 一律 `.tsx`                       |
-| `{資料夾名}.view-model.ts` / `.tsx`  | 邏輯層（hooks、狀態、API）                       | 無 JSX 用 `.ts`，含 JSX 用 `.tsx` |
-| `{資料夾名}.navigation.tsx`          | 該 view 專屬的導覽／tab 設定（需要時才建）       | `.tsx`                            |
-| `type.ts`                            | 該畫面專屬型別                                   | `.ts`                             |
-| `index.ts`                           | 該層 barrel 匯出                                 | `.ts`                             |
-| `ComponentName.tsx`                  | 子元件                                           | `.tsx`                            |
-| `hook/useXxx.ts`                     | view 專用 hook                                   | `.ts` / `.tsx`                    |
-| `xxxAdapter.ts`、`xxxActions.ts` 等  | view 專用純函式／adapter，camelCase 命名         | `.ts`                             |
+| 檔案                                | 用途                                             | 副檔名規則                        |
+| ----------------------------------- | ------------------------------------------------ | --------------------------------- |
+| `{資料夾名}.view-controller.tsx`    | View 層，只負責 UI 呈現，從 ViewModel 接收 props | 一律 `.tsx`                       |
+| `{資料夾名}.view-model.ts` / `.tsx` | 邏輯層（hooks、狀態、API）                       | 無 JSX 用 `.ts`，含 JSX 用 `.tsx` |
+| `{資料夾名}.navigation.tsx`         | 該 view 專屬的導覽／tab 設定（需要時才建）       | `.tsx`                            |
+| `type.ts`                           | 該畫面專屬型別                                   | `.ts`                             |
+| `index.ts`                          | 該層 barrel 匯出                                 | `.ts`                             |
+| `ComponentName.tsx`                 | 子元件                                           | `.tsx`                            |
+| `hook/useXxx.ts`                    | view 專用 hook                                   | `.ts` / `.tsx`                    |
+| `xxxAdapter.ts`、`xxxActions.ts` 等 | view 專用純函式／adapter，camelCase 命名         | `.ts`                             |
 
 ## 3. View 專用檔案放置
 
@@ -70,6 +70,24 @@ src/
 - **具名匯出** UI 元件：`export function xxxViewController(props: IXxxViewModel) { ... }`
 - **default 匯出** 由 `bind` 組裝 ViewModel + ViewController，必要時再包裝 HOC。
 - `index.ts` 以 `XxxView` 對外（如 `export { default as ExploreView } from './explore.view-controller'`）。
+
+### View-Model（`{資料夾名}.view-model.ts`）
+
+- **具名匯出** hook：`export function useXxxViewModel() { ... }`，上方需有 JSDoc 說明該畫面邏輯的職責。
+- 檔尾 **具名匯出** props 型別：`export type IXxxViewModel = ReturnType<typeof useXxxViewModel>`，供 ViewController 作為 props 型別。
+- hook 內管理狀態、副作用與 usecase 呼叫；不 import 任何 UI 元件、不回傳 JSX（含 JSX 時才改用 `.tsx`）。
+- 回傳值只暴露 ViewController 需要的狀態與 handler，內部中間值不對外。
+
+```ts
+// cave.view-model.ts
+/** 管理洞府自然休養倒數與立即完成 API */
+export function useCaveViewModel() {
+  // 狀態、副作用、usecase 呼叫
+  return { character, countdown, handleConfirmComplete }
+}
+
+export type ICaveViewModel = ReturnType<typeof useCaveViewModel>
+```
 
 ## 5. 核心原則
 

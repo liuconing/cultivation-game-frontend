@@ -1,13 +1,12 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { exploreUsecase } from '@/domain'
 import type { ExplorationData } from '@/domain/repository'
 import { getApiClientError } from '@/lib/axios'
-import type { GameViewBattleLogEntry, GameViewCharacter, GameViewMap } from '@/utils'
 import { useGameMutation } from '@/hook'
 import { useGameRuntime } from '@/containers'
-import { createExplorationResultView, type ExplorationResultView } from './explorationResultAdapter'
-import { useExplorationPlayback, type ExplorationPlaybackPhase } from './hook/useExplorationPlayback'
+import { createExplorationResultView } from './explorationResultAdapter'
+import { useExplorationPlayback } from './hook/useExplorationPlayback'
 
 /** 玩家送出的探索操作意圖。 */
 interface ExploreIntent {
@@ -15,54 +14,8 @@ interface ExploreIntent {
   mapId: string
 }
 
-/** 探索 ViewController 需要的狀態與操作。 */
-export interface IExploreViewModel {
-  /** 角色摘要。 */
-  character: GameViewCharacter
-  /** 地圖列表。 */
-  maps: GameViewMap[]
-  /** 目前選中的地圖。 */
-  selectedMap: GameViewMap | undefined
-  /** 是否開啟結果 Modal。 */
-  isResultOpen: boolean
-  /** 探索錯誤訊息。 */
-  exploreError: string | null
-  /** 結果畫面模型。 */
-  resultView: ExplorationResultView | null
-  /** 可見的戰鬥紀錄。 */
-  visibleBattleLog: GameViewBattleLogEntry[]
-  /** 已顯示的戰鬥紀錄筆數。 */
-  visibleBattleLogCount: number
-  /** 戰鬥播放階段。 */
-  battlePlaybackPhase: ExplorationPlaybackPhase
-  /** 勝敗與獎勵是否可揭示。 */
-  isOutcomeRevealed: boolean
-  /** 戰鬥紀錄捲動容器 ref。 */
-  battleLogRef: RefObject<HTMLOListElement | null>
-  /** 結果關閉後需還原焦點的觸發元素。 */
-  exploreTriggerRef: RefObject<HTMLElement | null>
-  /** 是否為非戰鬥事件。 */
-  isEncounter: boolean
-  /** 是否可揭示戰鬥結果標題與徽章。 */
-  canRevealBattleOutcome: boolean
-  /** 生命或靈力是否偏低。 */
-  hasLowResources: boolean
-  /** 是否可送出探索。 */
-  canExplore: boolean
-  /** 探索請求是否進行中。 */
-  isExplorePending: boolean
-  /** 選擇地圖。 */
-  handleSelectMap: (mapId: string) => void
-  /** 開始探索。 */
-  handleExplore: () => void
-  /** 關閉結果 Modal。 */
-  handleCloseResult: () => void
-  /** 前往整備頁。 */
-  handleGoToLoadout: () => void
-}
-
 /** 管理地圖選擇、探索提交與戰鬥結果播放。 */
-export function useExploreViewModel(): IExploreViewModel {
+export function useExploreViewModel() {
   const navigate = useNavigate()
   const { gameState } = useGameRuntime()
   const [selectedMapId, setSelectedMapId] = useState(gameState.maps[0]?.id ?? '')
@@ -131,26 +84,49 @@ export function useExploreViewModel(): IExploreViewModel {
   }
 
   return {
+    /** 角色摘要。 */
     character: gameState.character,
+    /** 地圖列表。 */
     maps: gameState.maps,
+    /** 目前選中的地圖。 */
     selectedMap,
+    /** 是否開啟結果 Modal。*/
     isResultOpen,
+    /** 探索錯誤訊息。 */
     exploreError,
+    /** 結果畫面模型。 */
     resultView,
+    /** 可見的戰鬥紀錄。 */
     visibleBattleLog,
+    /** 已顯示的戰鬥紀錄筆數。 */
     visibleBattleLogCount,
+    /** 戰鬥播放階段。 */
     battlePlaybackPhase,
+    /** 勝敗與獎勵是否可揭示。 */
     isOutcomeRevealed,
+    /** 戰鬥紀錄捲動容器 ref。*/
     battleLogRef,
+    /** 結果關閉後需還原焦點的觸發元素。 */
     exploreTriggerRef,
+    /** 是否為非戰鬥事件。 */
     isEncounter,
+    /** 是否可揭示戰鬥結果標題與徽章。 */
     canRevealBattleOutcome,
+    /** 生命或靈力是否偏低。 */
     hasLowResources,
+    /** 是否可送出探索。 */
     canExplore,
+    /** 探索請求是否進行中。 */
     isExplorePending: exploreMutation.isPending,
+    /** 選擇地圖。 */
     handleSelectMap: setSelectedMapId,
+    /** 開始探索。 */
     handleExplore,
+    /** 關閉結果 Modal。*/
     handleCloseResult,
+    /** 前往整備頁。 */
     handleGoToLoadout,
   }
 }
+
+export type IExploreViewModel = ReturnType<typeof useExploreViewModel>

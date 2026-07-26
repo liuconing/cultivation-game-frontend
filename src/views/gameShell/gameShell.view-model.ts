@@ -95,37 +95,8 @@ const getGlobalIndicators = (gameState: GameViewState): GlobalIndicator[] => {
   return indicators
 }
 
-export interface IGameShellViewModel {
-  gameState: GameViewState
-  activeItem: GameNavigationItem
-  navigationItems: GameNavigationItem[]
-  indicators: GlobalIndicator[]
-  isCharacterDrawerOpen: boolean
-  isAccountMenuOpen: boolean
-  /** 是否正在向後端撤銷目前 token。 */
-  isLoggingOut: boolean
-  shellNotice: string | null
-  /** 框架層手動同步失敗時的局部錯誤。 */
-  shellError: string | null
-  /** V1 物品 catalog 是否載入失敗。 */
-  hasCatalogError: boolean
-  /** 目前登入帳號的 Email。 */
-  accountLabel: string
-  accountButtonRef: RefObject<HTMLButtonElement | null>
-  accountMenuRef: RefObject<HTMLDivElement | null>
-  accountFirstItemRef: RefObject<HTMLButtonElement | null>
-  handleOpenCharacterDrawer: () => void
-  handleCloseCharacterDrawer: () => void
-  handleToggleAccountMenu: () => void
-  handleCloseAccountMenu: (restoreFocus?: boolean) => void
-  handleReloadState: () => void
-  /** 重新載入物品 catalog。 */
-  handleReloadCatalog: () => void
-  handleLogout: () => void
-}
-
 /** 提供 Game Shell 導覽、帳號選單與正式遊戲資料。 */
-export function useGameShellViewModel(): IGameShellViewModel {
+export function useGameShellViewModel() {
   const location = useLocation()
   const { user, logout, isLoggingOut } = useSession()
   const { gameState, catalogError, reloadCatalog, reloadGameState } = useGameRuntime()
@@ -258,3 +229,5 @@ export function useGameShellViewModel(): IGameShellViewModel {
     handleLogout,
   }
 }
+
+export type IGameShellViewModel = ReturnType<typeof useGameShellViewModel>

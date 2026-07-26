@@ -15,36 +15,8 @@ import { getPostAuthRoute } from '@/router/route-state'
 import { useAuthStore } from '@/stores'
 import { submitAuthFlow } from './auth-submit-flow'
 
-/** 登入與註冊 ViewController 需要的狀態與操作。 */
-export interface ILoginViewModel {
-  /** 目前是登入或註冊模式。 */
-  mode: AuthMode
-  /** 使用者輸入的表單值。 */
-  values: AuthFormValues
-  /** 各輸入欄位的前端錯誤。 */
-  fieldErrors: AuthFieldErrors
-  /** API 或 session 狀態通知。 */
-  notice: AuthNotice | null
-  /** 是否顯示密碼明文。 */
-  showPassword: boolean
-  /** 是否正在送出 API 請求。 */
-  isSubmitting: boolean
-  /** Email 輸入欄位 ref。 */
-  accountRef: RefObject<HTMLInputElement | null>
-  /** 密碼輸入欄位 ref。 */
-  passwordRef: RefObject<HTMLInputElement | null>
-  /** 確認密碼輸入欄位 ref。 */
-  confirmPasswordRef: RefObject<HTMLInputElement | null>
-  /** 更新指定表單欄位。 */
-  handleFieldChange: (field: keyof AuthFormValues, value: string) => void
-  /** 切換密碼顯示狀態。 */
-  handleTogglePassword: () => void
-  /** 驗證並送出登入或註冊表單。 */
-  handleSubmit: (event: FormEvent<HTMLFormElement>) => void
-}
-
 /** 管理登入與註冊表單驗證、正式 API 及成功導流。 */
-export function useLoginViewModel(): ILoginViewModel {
+export function useLoginViewModel() {
   const location = useLocation()
   const navigate = useNavigate()
   const mode: AuthMode = location.pathname === '/register' ? 'register' : 'login'
@@ -237,3 +209,5 @@ export function useLoginViewModel(): ILoginViewModel {
     handleSubmit,
   }
 }
+
+export type ILoginViewModel = ReturnType<typeof useLoginViewModel>

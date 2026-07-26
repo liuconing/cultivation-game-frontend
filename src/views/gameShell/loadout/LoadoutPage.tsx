@@ -21,7 +21,7 @@ import { useFetch, useGameMutation } from '@/hook'
 import { getApiClientError } from '@/lib/axios'
 import type { GameViewEquipment, GameViewInventoryItem } from '@/utils'
 import { useGameRuntime } from '@/containers'
-import { createEquipSkillsParams } from './loadoutActions'
+import { createEquipSkillsParams } from './loadout-actions'
 
 type LoadoutTab = 'inventory' | 'equipment' | 'methods' | 'skills' | 'pills'
 type InventoryFilter = 'all' | GameViewInventoryItem['type']

@@ -1,7 +1,7 @@
 import { Button, Drawer, Panel, ProgressBar, StatusBadge } from '@/components'
 import { bind } from '@/utils'
 import { useGameShellViewModel, type IGameShellViewModel } from './gameShell.view-model'
-import { DesktopNavigation, MobileNavigation } from './gameShell.navigation'
+import { DesktopNavigation, MobileNavigation } from './game-shell.navigation'
 import { CaveView } from './cave'
 import { CultivationView } from './cultivation'
 import { ExploreView } from './explore'
