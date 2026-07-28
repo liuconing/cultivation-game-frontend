@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 300" role="img" aria-label="山水地圖">
-  <rect width="520" height="300" rx="24" fill="#0a0a0a"/>
-  <path d="M22 210c52-48 93-56 124-24 23 24 52 19 88-16 43-42 84-44 123-6 39 37 87 37 143 0v136H22z" fill="#f5f5f5" opacity=".14"/>
-  <path d="M42 96c57-24 111-26 162-8 44 16 86 13 126-9 54-30 105-28 154 5" fill="none" stroke="#f5f5f5" stroke-width="12" stroke-linecap="round" opacity=".08"/>
-  <path d="M284 129h55l-8 45h-39z" fill="#f5f5f5" opacity=".16"/>
-  <path d="M266 130l46-33 47 33z" fill="#f5f5f5" opacity=".18"/>
-  <path d="M66 252c89-30 169-29 240 4 49 23 100 24 154 4" fill="none" stroke="#f5f5f5" stroke-width="6" stroke-linecap="round" opacity=".1"/>
-</svg>

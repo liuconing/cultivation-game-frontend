@@ -1,10 +1,9 @@
 import { FaTimes } from 'react-icons/fa'
 import { Link } from 'react-router'
-import bambooShadow from '@/assets/images/bamboo-shadow.svg'
-import characterSilhouette from '@/assets/images/character-silhouette.svg'
-import explorationMap from '@/assets/images/exploration-map.svg'
-import inkLandscape from '@/assets/images/ink-landscape.svg'
-import meditationSilhouette from '@/assets/images/meditation-silhouette.svg'
+import bambooShadow from '@/assets/images/bamboo-shadow.jpg'
+import explorationMap from '@/assets/images/exploration-map.jpg'
+import heroCultivator from '@/assets/images/hero-cultivator.jpg'
+import heroLandscape from '@/assets/images/hero-landscape.jpg'
 import { Button } from '@/components'
 import { bind } from '@/utils'
 import type { HomeAction } from './home-navigation'
@@ -184,15 +183,12 @@ export function homeViewController({
             alt=''
             aria-hidden='true'
             className='pointer-events-none absolute inset-x-0 bottom-0 -z-20 h-[68%] w-full object-cover object-bottom opacity-35'
-            src={inkLandscape}
+            decoding='async'
+            fetchPriority='high'
+            loading='eager'
+            src={heroLandscape}
           />
           <div className='absolute inset-0 -z-10 bg-gradient-to-b from-ink-950 via-ink-950/88 to-ink-950/45' />
-          <img
-            alt=''
-            aria-hidden='true'
-            className='pointer-events-none absolute -right-14 top-8 -z-10 hidden h-[34rem] opacity-20 lg:block'
-            src={characterSilhouette}
-          />
 
           <div className='mx-auto grid min-h-[calc(100dvh-4rem)] max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,0.92fr)_minmax(20rem,0.58fr)] lg:px-8'>
             <div className='max-w-3xl'>
@@ -232,13 +228,15 @@ export function homeViewController({
             </div>
 
             <div className='relative hidden min-h-[30rem] lg:block'>
+              <img
+                alt='修士盤坐修煉，靈氣環繞周身'
+                className='absolute inset-0 size-full object-contain opacity-90 drop-shadow-2xl'
+                decoding='async'
+                loading='eager'
+                src={heroCultivator}
+              />
               <div className='absolute inset-8 rounded-full border border-gold-300/15' />
               <div className='absolute inset-20 rounded-full border border-jade-300/12' />
-              <img
-                alt='修士盤坐修煉的水墨剪影'
-                className='absolute inset-0 size-full object-contain opacity-80 drop-shadow-2xl'
-                src={meditationSilhouette}
-              />
             </div>
           </div>
         </section>
@@ -247,7 +245,9 @@ export function homeViewController({
           <img
             alt=''
             aria-hidden='true'
-            className='pointer-events-none absolute right-0 top-0 -z-10 h-72 opacity-15'
+            className='pointer-events-none absolute right-0 top-0 -z-10 h-72 opacity-40 mix-blend-screen'
+            decoding='async'
+            loading='lazy'
             src={bambooShadow}
           />
           <div className='max-w-2xl'>
@@ -309,7 +309,9 @@ export function homeViewController({
             <div className='absolute inset-0 bg-gradient-to-br from-jade-400/[0.05] to-transparent' />
             <img
               alt='標記山林、山谷與洞府的修仙探索地圖'
-              className='relative mx-auto w-full max-w-xl opacity-85'
+              className='relative mx-auto w-full max-w-xl opacity-90'
+              decoding='async'
+              loading='lazy'
               src={explorationMap}
             />
           </div>

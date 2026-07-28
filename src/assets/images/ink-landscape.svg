@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="水墨遠山">
-  <rect width="1200" height="520" fill="none"/>
-  <path d="M0 372c108-92 191-112 250-60 41 36 81 42 121 18 70-43 142-118 218-86 72 30 87 114 152 118 87 5 137-107 217-93 75 13 102 102 242 45v206H0z" fill="#f5f5f5" opacity=".16"/>
-  <path d="M0 418c91-58 176-69 256-33 75 34 139 28 193-18 80-68 159-72 237-14 63 47 127 52 192 16 96-54 204-42 322 36v115H0z" fill="#d4d4d4" opacity=".11"/>
-  <path d="M110 174c100-47 206-63 317-48 88 12 165 4 232-25 112-49 224-45 337 10" fill="none" stroke="#fafafa" stroke-width="18" stroke-linecap="round" opacity=".08"/>
-  <path d="M777 255h92l-14 83h-63z" fill="#f5f5f5" opacity=".15"/>
-  <path d="M748 256l74-54 76 54z" fill="#f5f5f5" opacity=".18"/>
-  <path d="M781 339h85" stroke="#fafafa" stroke-width="8" opacity=".12"/>
-</svg>

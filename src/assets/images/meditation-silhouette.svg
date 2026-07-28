@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" role="img" aria-label="打坐剪影">
-  <rect width="420" height="300" fill="none"/>
-  <circle cx="210" cy="78" r="34" fill="#f5f5f5" opacity=".18"/>
-  <path d="M168 132c8-34 76-34 84 0l12 56h-108z" fill="#f5f5f5" opacity=".16"/>
-  <path d="M106 238c40-41 78-55 114-42 36-13 74 1 114 42-57 17-97 12-120-15-22 27-58 32-108 15z" fill="#f5f5f5" opacity=".14"/>
-  <path d="M60 238c96 42 201 43 300 0" fill="none" stroke="#f5f5f5" stroke-width="10" stroke-linecap="round" opacity=".1"/>
-  <path d="M117 63c63-32 125-32 186 0" fill="none" stroke="#f5f5f5" stroke-width="8" stroke-linecap="round" opacity=".08"/>
-</svg>

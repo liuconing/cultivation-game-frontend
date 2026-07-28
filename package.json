@@ -11,6 +11,7 @@
     "test:auth": "node --test scripts/auth-form.test.mjs scripts/auth-submit-flow.test.mjs scripts/logout-policy.test.mjs",
     "test:error": "node --test scripts/global-error.test.mjs",
     "test:seo": "node --test scripts/seo-assets.test.mjs",
+    "test:home-assets": "node --test scripts/home-image-assets.test.mjs",
     "test:routes": "node --test scripts/route-access.test.mjs scripts/home-navigation.test.mjs",
     "test:character": "node --test scripts/character-create.test.mjs",
     "test:breakthrough": "node --test scripts/breakthrough-chance.test.mjs",
