@@ -230,7 +230,7 @@ export function homeViewController({
             <div className='relative hidden min-h-[30rem] lg:block'>
               <img
                 alt='修士盤坐修煉，靈氣環繞周身'
-                className='absolute inset-0 size-full object-contain opacity-90 drop-shadow-2xl'
+                className='absolute inset-0 size-full object-contain opacity-90 mix-blend-screen drop-shadow-2xl'
                 decoding='async'
                 loading='eager'
                 src={heroCultivator}
